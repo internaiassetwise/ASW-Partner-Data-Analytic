@@ -30,6 +30,8 @@ export async function GET(req: NextRequest) {
         address: r.address || "",
         google_map_url: r.google_map_url || "",
         bu: r.bu || "",
+        lat: parseFloat(r.lat),
+        lng: parseFloat(r.lng),
         isProject: true,
       },
     }));

@@ -142,8 +142,8 @@ export default function Home() {
       setSelectedItem({ ...props, _lat: coords[1], _lng: coords[0] });
     }
     if (props.isProject && props.id) {
-      const lat = coords ? coords[1] : (props as any)._lat;
-      const lng = coords ? coords[0] : (props as any)._lng;
+      const lat = coords ? coords[1] : (props as any).lat;
+      const lng = coords ? coords[0] : (props as any).lng;
       try {
         const [projRes, nearbyRes] = await Promise.all([
           fetch(`/api/projects?id=${props.id}`),
