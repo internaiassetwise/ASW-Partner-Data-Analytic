@@ -12,12 +12,6 @@ interface Feature {
   properties: Record<string, any>;
 }
 interface GeoJSON { type: string; features: Feature[]; }
-interface FilterOptions {
-  zones: string[];
-  types: { value: string; count: number }[];
-  provinces: string[];
-  projects: { id: number; name: string }[];
-}
 
 const TYPE_LABELS: Record<string, string> = {
   partner: "ASW Partner", sponsor: "Sponsor", bank: "Bank",
@@ -32,10 +26,35 @@ const TYPE_COLORS: Record<string, string> = {
 const ALL_TYPES = Object.keys(TYPE_LABELS);
 const NAVY = "#1e3a5f";
 
+// Helper: apply a set of filters to features, optionally excluding one dimension
+function applyFilters(features: Feature[], opts: {
+  zone?: string; province?: string; projectId?: string;
+  types?: Set<string>; search?: string;
+  exclude?: "zone" | "province" | "projectId" | "types" | "search";
+}) {
+  let result = features;
+  if (opts.projectId && opts.exclude !== "projectId") {
+    result = result.filter((f) => String(f.properties.project_id) === opts.projectId);
+  }
+  if (opts.zone && opts.exclude !== "zone") {
+    result = result.filter((f) => f.properties.admin_zone === opts.zone);
+  }
+  if (opts.province && opts.exclude !== "province") {
+    result = result.filter((f) => f.properties.province === opts.province);
+  }
+  if (opts.types && opts.types.size < ALL_TYPES.length && opts.exclude !== "types") {
+    result = result.filter((f) => opts.types!.has(f.properties.entity_type));
+  }
+  if (opts.search?.trim() && opts.exclude !== "search") {
+    const q = opts.search.toLowerCase().trim();
+    result = result.filter((f) => ((f.properties.name as string) || "").toLowerCase().includes(q));
+  }
+  return result;
+}
+
 export default function Home() {
-  const [partners, setPartners] = useState<GeoJSON>({ type: "FeatureCollection", features: [] });
+  const [allPartners, setAllPartners] = useState<GeoJSON>({ type: "FeatureCollection", features: [] });
   const [projects, setProjects] = useState<GeoJSON>({ type: "FeatureCollection", features: [] });
-  const [filters, setFilters] = useState<FilterOptions | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<Record<string, any> | null>(null);
@@ -46,41 +65,57 @@ export default function Home() {
   const [selProject, setSelProject] = useState("");
   const [selTypes, setSelTypes] = useState<Set<string>>(new Set(ALL_TYPES));
 
-  const fetchPartners = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (selZone) params.set("zone", selZone);
-    if (selProvince) params.set("province", selProvince);
-    if (selProject) params.set("projectId", selProject);
-    const res = await fetch(`/api/partners?${params}`);
-    const data = await res.json();
-    setPartners(data);
-    setLoading(false);
-  }, [selZone, selProvince, selProject]);
-
-  useEffect(() => { fetch("/api/projects").then((r) => r.json()).then(setProjects); }, []);
+  // Fetch ALL data once
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (selZone) params.set("zone", selZone);
-    if (selProvince) params.set("province", selProvince);
-    if (selProject) params.set("projectId", selProject);
-    fetch(`/api/filters${params.toString() ? "?" + params.toString() : ""}`).then((r) => r.json()).then(setFilters);
-  }, [selZone, selProvince, selProject]);
-  useEffect(() => { setLoading(true); const t = setTimeout(fetchPartners, 300); return () => clearTimeout(t); }, [fetchPartners]);
+    fetch("/api/partners").then((r) => r.json()).then((d) => { setAllPartners(d); setLoading(false); });
+    fetch("/api/projects").then((r) => r.json()).then(setProjects);
+  }, []);
+
+  const filterOpts = { zone: selZone, province: selProvince, projectId: selProject, types: selTypes, search: searchQuery };
+
+  // Cascading: available options for each dimension (excluding that dimension's own filter)
+  const availableZones = useMemo(() => {
+    const filtered = applyFilters(allPartners.features, { ...filterOpts, exclude: "zone" });
+    return [...new Set(filtered.map((f) => f.properties.admin_zone).filter(Boolean))].sort();
+  }, [allPartners, filterOpts]);
+
+  const availableProvinces = useMemo(() => {
+    const filtered = applyFilters(allPartners.features, { ...filterOpts, exclude: "province" });
+    return [...new Set(filtered.map((f) => f.properties.province).filter(Boolean))].sort();
+  }, [allPartners, filterOpts]);
+
+  const availableTypes = useMemo(() => {
+    const filtered = applyFilters(allPartners.features, { ...filterOpts, exclude: "types" });
+    const counts: Record<string, number> = {};
+    filtered.forEach((f) => { const t = f.properties.entity_type; counts[t] = (counts[t] || 0) + 1; });
+    return ALL_TYPES.filter((t) => counts[t] > 0).map((t) => ({ value: t, count: counts[t] }));
+  }, [allPartners, filterOpts]);
+
+  // Final displayed partners (all filters applied)
+  const displayPartners = useMemo(() => ({
+    type: "FeatureCollection",
+    features: applyFilters(allPartners.features, filterOpts),
+  }), [allPartners, filterOpts]);
 
   const displayProjects = useMemo(() => {
     if (!selProject) return projects;
     return { ...projects, features: projects.features.filter((f) => String(f.properties.id) === selProject) };
   }, [projects, selProject]);
 
-  const displayPartners = useMemo(() => {
-    let features = partners.features;
-    if (selTypes.size < ALL_TYPES.length) features = features.filter((f) => selTypes.has(f.properties.entity_type));
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      features = features.filter((f) => ((f.properties.name as string) || "").toLowerCase().includes(q));
+  // Auto-clear invalid selections when cascading removes options
+  useEffect(() => {
+    if (selZone && !availableZones.includes(selZone)) setSelZone("");
+  }, [selZone, availableZones]);
+  useEffect(() => {
+    if (selProvince && !availableProvinces.includes(selProvince)) setSelProvince("");
+  }, [selProvince, availableProvinces]);
+  useEffect(() => {
+    if (selTypes.size > 0) {
+      const validTypes = new Set(availableTypes.map((t) => t.value));
+      const newTypes = new Set([...selTypes].filter((t) => validTypes.has(t)));
+      if (newTypes.size < selTypes.size && newTypes.size > 0) setSelTypes(newTypes);
     }
-    return { ...partners, features };
-  }, [partners, searchQuery, selTypes]);
+  }, [selTypes, availableTypes]);
 
   const toggleType = (type: string) => {
     setSelTypes((prev) => { const n = new Set(prev); n.has(type) ? n.delete(type) : n.add(type); return n; });
@@ -95,16 +130,14 @@ export default function Home() {
     }
   }, []);
 
-  // Click from list → select + fly to marker
-  const handleListClick = useCallback((feature: Feature) => {
-    handleSelect(feature.properties);
-  }, [handleSelect]);
-
-  const hasFilter = selZone || selProvince || selProject || searchQuery || selTypes.size < ALL_TYPES.length;
+  const hasFilter = !!selZone || !!selProvince || !!selProject || !!searchQuery || selTypes.size < ALL_TYPES.length;
   const resetAll = () => { setSelZone(""); setSelProvince(""); setSelProject(""); setSearchQuery(""); setSelTypes(new Set(ALL_TYPES)); };
 
   const activeChips: { label: string; onClear: () => void }[] = [];
-  if (selProject) { const p = filters?.projects.find((p) => String(p.id) === selProject); if (p) activeChips.push({ label: p.name, onClear: () => setSelProject("") }); }
+  if (selProject) {
+    const p = projects.features.find((f) => String(f.properties.id) === selProject);
+    if (p) activeChips.push({ label: p.properties.name as string, onClear: () => setSelProject("") });
+  }
   if (selProvince) activeChips.push({ label: selProvince, onClear: () => setSelProvince("") });
   if (selZone) activeChips.push({ label: selZone, onClear: () => setSelZone("") });
 
@@ -118,6 +151,8 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "partners_export.csv"; a.click(); URL.revokeObjectURL(url);
   };
+
+  const projectList = projects.features.map((f) => ({ id: f.properties.id, name: f.properties.name }));
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -143,7 +178,7 @@ export default function Home() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — w-72 with filters + partner list */}
+        {/* Sidebar */}
         <aside className="w-72 border-r border-gray-200 flex flex-col shrink-0 bg-white">
           {/* Active chips */}
           {activeChips.length > 0 && (
@@ -157,31 +192,39 @@ export default function Home() {
             </div>
           )}
 
-          {/* Filters (compact) */}
-          <div className="px-4 py-2.5 space-y-2 border-b border-gray-100">
-            <select value={selProject} onChange={(e) => setSelProject(e.target.value)} className="w-full text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
+          {/* Filters */}
+          <div className="px-3 py-2.5 space-y-2 border-b border-gray-100">
+            <select value={selProject} onChange={(e) => setSelProject(e.target.value)} className="w-full max-w-full text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none truncate">
               <option value="">โครงการ: ทั้งหมด</option>
-              {filters?.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {projectList.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <div className="flex gap-2">
-              <select value={selProvince} onChange={(e) => setSelProvince(e.target.value)} className="flex-1 text-[13px] border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
+            <div className="grid grid-cols-2 gap-1.5">
+              <select value={selProvince} onChange={(e) => setSelProvince(e.target.value)} className="w-full min-w-0 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
                 <option value="">จังหวัด</option>
-                {filters?.provinces.map((p) => <option key={p} value={p}>{p}</option>)}
+                {availableProvinces.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
-              <select value={selZone} onChange={(e) => setSelZone(e.target.value)} className="flex-1 text-[13px] border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
+              <select value={selZone} onChange={(e) => setSelZone(e.target.value)} className="w-full min-w-0 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
                 <option value="">เขต/อำเภอ</option>
-                {filters?.zones.map((z) => <option key={z} value={z}>{z}</option>)}
+                {availableZones.map((z) => <option key={z} value={z}>{z}</option>)}
               </select>
             </div>
-            {/* Type checkboxes (compact inline) */}
+            {/* Type toggle pills — cascading */}
             <div className="flex flex-wrap gap-1.5">
-              {ALL_TYPES.map((type) => (
-                <label key={type} className="flex items-center gap-1 text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded-md cursor-pointer hover:bg-gray-100">
-                  <input type="checkbox" checked={selTypes.has(type)} onChange={() => toggleType(type)} className="w-3 h-3" style={{ accentColor: TYPE_COLORS[type] }} />
-                  <span className="w-2 h-2 rounded-full" style={{ background: TYPE_COLORS[type] }}></span>
-                  {TYPE_LABELS[type]}
-                </label>
-              ))}
+              {availableTypes.map(({ value: type, count }) => {
+                const isActive = selTypes.has(type);
+                const color = TYPE_COLORS[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => toggleType(type)}
+                    className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md cursor-pointer transition"
+                    style={isActive ? { background: color, color: "white" } : { background: "#f3f4f6", color: "#9ca3af" }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={isActive ? { background: "white" } : { background: color }} />
+                    {TYPE_LABELS[type]}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -195,26 +238,19 @@ export default function Home() {
             )}
           </div>
 
-          {/* Partner list (scrollable) */}
+          {/* Partner list */}
           <div className="flex-1 overflow-y-auto">
             {displayPartners.features.map((f, i) => {
               const p = f.properties;
               const isActive = selectedId === p.id;
               const color = TYPE_COLORS[p.entity_type as string] || "#666";
               return (
-                <div
-                  key={i}
-                  onClick={() => handleListClick(f)}
-                  className={`px-4 py-2 border-b border-gray-50 cursor-pointer transition ${isActive ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"}`}
-                >
+                <div key={i} onClick={() => handleSelect(p)} className={`px-4 py-2 border-b border-gray-50 cursor-pointer transition ${isActive ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"}`}>
                   <div className="flex items-start gap-2">
                     <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                     <div className="flex-1 min-w-0">
                       <p className={`text-[13px] truncate ${isActive ? "font-medium text-gray-900" : "text-gray-700"}`}>{p.name}</p>
-                      <p className="text-[11px] text-gray-400">
-                        {TYPE_LABELS[p.entity_type as string] || p.entity_type}
-                        {p.admin_zone && ` · ${p.admin_zone}`}
-                      </p>
+                      <p className="text-[11px] text-gray-400">{TYPE_LABELS[p.entity_type as string] || p.entity_type}{p.admin_zone && ` · ${p.admin_zone}`}</p>
                     </div>
                   </div>
                 </div>
@@ -237,7 +273,6 @@ export default function Home() {
             onSelect={handleSelect}
             flyTo={selectedItem ? { lat: (selectedItem as any).lat, lng: (selectedItem as any).lng } : null}
           />
-          {/* Legend */}
           <div className="absolute bottom-3 left-3 bg-white/95 border border-gray-200 rounded-lg px-3 py-2 text-[12px] flex flex-nowrap gap-x-4 shadow-md z-[500] backdrop-blur-sm overflow-x-auto">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: NAVY, border: "2px solid #2a5277" }} /> โครงการ
