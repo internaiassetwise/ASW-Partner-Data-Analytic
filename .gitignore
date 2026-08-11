@@ -1,0 +1,39 @@
+# === Secrets ===
+.env
+.env.local
+.env.*.local
+
+# === Python ===
+pipeline/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# === Node.js / Next.js ===
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# === Data pipeline temp files ===
+pipeline/data/cache/
+pipeline/data/enriched/
+pipeline/data/clean/
+*.kml
+partner_geocode.csv
+
+# === Temp ===
+dev_log.txt
+*.log
+.DS_Store
+Thumbs.db
+
+# === Original Excel (too large / sensitive) ===
+*.xlsx
+
+# === Agent tooling (not project code) ===
+.agents/
+skills-lock.json
+web/AGENTS.md
+web/CLAUDE.md
