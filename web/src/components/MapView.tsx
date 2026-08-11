@@ -1,6 +1,6 @@
 "use client";
 
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Marker, Popup, Tooltip, useMap, ZoomControl } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { useEffect, useCallback } from "react";
 import L from "leaflet";
@@ -41,6 +41,27 @@ function FlyTo({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+// Create label icon for partners (small gray text)
+function makeLabelIcon(text: string) {
+  const truncated = text.length > 25 ? text.substring(0, 25) + "..." : text;
+  return L.divIcon({
+    className: "",
+    html: `<div style="color:#6b7280;font-size:9px;font-weight:500;white-space:nowrap;text-shadow:1px 1px 0 white,-1px 1px 0 white,1px -1px 0 white,-1px -1px 0 white;">${truncated}</div>`,
+    iconSize: [120, 14],
+    iconAnchor: [60, -4],
+  });
+}
+
+// Create label icon for projects (navy badge)
+function makeProjectLabelIcon(text: string) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="background:rgba(30,58,95,0.9);color:white;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.15);">${text}</div>`,
+    iconSize: [150, 20],
+    iconAnchor: [75, -8],
+  });
+}
+
 export default function MapView({
   partners, projects, onSelect, flyTo,
 }: {
@@ -64,48 +85,21 @@ export default function MapView({
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
       <ZoomControl position="topleft" />
 
+      {/* Projects — dot + permanent label */}
       {projects.features.map((f, i) => (
-        <CircleMarker
-          key={`proj-${i}`}
-          center={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
-          radius={10}
-          pathOptions={{ color: NAVY, weight: 2, fillColor: NAVY, fillOpacity: 0.85 }}
-          eventHandlers={{ click: () => onSelect(f.properties) }}
-        >
-          <Popup><div style={{ minWidth: "160px" }}>
-            <strong style={{ fontSize: "13px", color: NAVY }}>{f.properties.name}</strong><br />
-            <span style={{ fontSize: "11px", color: "#888" }}>คลิกเพื่อดูรายละเอียด</span>
-          </div></Popup>
-        </CircleMarker>
+        <ProjectMarker key={`proj-${i}`} feature={f} onSelect={onSelect} />
       ))}
 
+      {/* Partners — dot + permanent label + cluster */}
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} showCoverageOnHover={false} maxClusterRadius={50}>
-        {partners.features.map((f, i) => {
-          const color = TYPE_COLORS[f.properties.entity_type as string] || "#666";
-          return (
-            <CircleMarker
-              key={`p-${i}`}
-              center={[f.geometry.coordinates[1], f.geometry.coordinates[0]]}
-              radius={5}
-              pathOptions={{ color, weight: 1, fillColor: color, fillOpacity: 0.75 }}
-              eventHandlers={{ click: () => onSelect(f.properties) }}
-            >
-              <Popup><div style={{ minWidth: "150px" }}>
-                <strong style={{ fontSize: "12px" }}>{f.properties.name}</strong><br />
-                <span style={{ fontSize: "11px", color: "#888" }}>
-                  {TYPE_LABELS[f.properties.entity_type as string] || f.properties.entity_type}
-                  {f.properties.admin_zone && ` · ${f.properties.admin_zone}`}
-                </span>
-              </div></Popup>
-            </CircleMarker>
-          );
-        })}
+        {partners.features.map((f, i) => (
+          <PartnerMarker key={`p-${i}`} feature={f} onSelect={onSelect} />
+        ))}
       </MarkerClusterGroup>
 
       <FitBounds features={[...partners.features, ...projects.features]} />
       {flyTo && <FlyTo lat={flyTo.lat} lng={flyTo.lng} />}
 
-      {/* Reset button */}
       <ResetButton />
     </MapContainer>
   );
@@ -122,5 +116,50 @@ function ResetButton() {
         boxShadow: "0 1px 4px rgba(0,0,0,0.15)", color: "#4b5563",
       }}>มุมมองทั้งหมด</button>
     </div>
+  );
+}
+
+function ProjectMarker({ feature, onSelect }: { feature: Feature; onSelect: (p: Record<string, any>) => void }) {
+  const lat = feature.geometry.coordinates[1];
+  const lng = feature.geometry.coordinates[0];
+  return (
+    <>
+      <CircleMarker
+        center={[lat, lng]}
+        radius={7}
+        pathOptions={{ color: NAVY, weight: 2, fillColor: NAVY, fillOpacity: 0.85 }}
+        eventHandlers={{ click: () => onSelect(feature.properties) }}
+      >
+        <Tooltip sticky direction="top" offset={[0, -8]}>
+          <div><b style={{ color: NAVY }}>{feature.properties.name}</b><br /><span style={{ color: "#9ca3af", fontSize: "10px" }}>โครงการ</span></div>
+        </Tooltip>
+      </CircleMarker>
+      <Marker position={[lat, lng]} icon={makeProjectLabelIcon(feature.properties.name)} interactive={false} />
+    </>
+  );
+}
+
+function PartnerMarker({ feature, onSelect }: { feature: Feature; onSelect: (p: Record<string, any>) => void }) {
+  const lat = feature.geometry.coordinates[1];
+  const lng = feature.geometry.coordinates[0];
+  const color = TYPE_COLORS[feature.properties.entity_type as string] || "#666";
+  const name = feature.properties.name as string;
+  return (
+    <>
+      <CircleMarker
+        center={[lat, lng]}
+        radius={5}
+        pathOptions={{ color, weight: 1, fillColor: color, fillOpacity: 0.75 }}
+        eventHandlers={{ click: () => onSelect(feature.properties) }}
+      >
+        <Tooltip sticky direction="top" offset={[0, -8]}>
+          <div><b>{name}</b><br /><span style={{ color: "#9ca3af", fontSize: "10px" }}>
+            {TYPE_LABELS[feature.properties.entity_type as string] || feature.properties.entity_type}
+            {feature.properties.admin_zone && ` · ${feature.properties.admin_zone}`}
+          </span></div>
+        </Tooltip>
+      </CircleMarker>
+      <Marker position={[lat, lng]} icon={makeLabelIcon(name)} interactive={false} />
+    </>
   );
 }

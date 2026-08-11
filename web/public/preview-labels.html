@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview — Marker Labels v2</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+  #map { height: 100vh; width: 100%; background: #f0f4f8; }
+  .project-label {
+    background: rgba(30,58,95,0.9); color: white; padding: 2px 7px;
+    border-radius: 3px; font-size: 10px; font-weight: 600;
+    white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .partner-label {
+    color: #6b7280; font-size: 9px; font-weight: 500;
+    white-space: nowrap; text-shadow: 1px 1px 0 white, -1px 1px 0 white,
+    1px -1px 0 white, -1px -1px 0 white;
+  }
+  .tooltip-custom {
+    background: white !important; border: 1px solid #e5e7eb !important;
+    border-radius: 6px !important; padding: 5px 10px !important;
+    font-size: 11px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+  }
+  .tooltip-custom b { color: #1f2937; }
+  .tooltip-custom span { color: #9ca3af; font-size: 10px; }
+  .controls {
+    position: absolute; top: 10px; right: 10px; z-index: 1000;
+    background: white; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 10px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .controls label { display: flex; align-items: center; gap: 6px; margin: 4px 0; cursor: pointer; }
+  .legend-bottom {
+    position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+    background: white/95; background: rgba(255,255,255,0.95);
+    border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px;
+    font-size: 11px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .legend-bottom .row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+  .legend-bottom .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .hint {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 1000; background: white; border: 1px solid #e5e7eb;
+    border-radius: 8px; padding: 8px 16px; font-size: 12px; color: #6b7280;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .hint b { color: #1e3a5f; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="hint">
+  เลือกรูปแบบด้านขวา → ซูมเข้า/ออก เพื่อดูผล
+</div>
+
+<div class="controls">
+  <div style="font-weight:600;margin-bottom:6px;color:#374151;">รูปแบบชื่อ</div>
+  <label><input type="radio" name="mode" value="hover" checked> เฉพาะตอน hover</label>
+  <label><input type="radio" name="mode" value="project"> โครงการลอย + พาร์ทเนอร์ hover</label>
+  <label><input type="radio" name="mode" value="all"> ทุกจุดมีชื่อลอย</label>
+</div>
+
+<div class="legend-bottom">
+  <div class="row"><span class="dot" style="background:#1e3a5f;width:12px;height:12px;"></span> โครงการ</div>
+  <div class="row"><span class="dot" style="background:#378ADD;"></span> พาร์ทเนอร์</div>
+  <div class="row"><span class="dot" style="background:#1D9E75;"></span> ธนาคาร</div>
+  <div class="row"><span class="dot" style="background:#06B6D4;"></span> พาร์ทเนอร์ 2026</div>
+  <div class="row"><span class="dot" style="background:#D85A30;"></span> สปอนเซอร์</div>
+</div>
+
+<script>
+const map = L.map('map').setView([13.73, 100.58], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+const projects = [
+  { name: 'โมดิซ สุขุมวิท 50', lat: 13.6943, lng: 100.6038 },
+  { name: 'แอทโมซ เดอโซล-ทิพวัล', lat: 13.6599, lng: 100.6043 },
+  { name: 'มารูน รัชดา 32', lat: 13.7892, lng: 100.5750 },
+];
+
+const partners = [
+  { name: 'บริษัท เอสซีบี เอกซ์ (SCBX)', type: 'พาร์ทเนอร์', zone: 'จตุจักร', color: '#378ADD', lat: 13.7270, lng: 100.5641 },
+  { name: 'ธนาคารกรุงศรี (BAY)', type: 'ธนาคาร', zone: 'ยานนาวา', color: '#1D9E75', lat: 13.6797, lng: 100.5471 },
+  { name: 'ธนาคารไทยธนชาติ (TTB)', type: 'ธนาคาร', zone: 'จตุจักร', color: '#1D9E75', lat: 13.7314, lng: 100.5593 },
+  { name: 'บริษัท ชินวุธ มาร์เก็ตติ้ง', type: 'พาร์ทเนอร์', zone: 'ประเวศ', color: '#378ADD', lat: 13.7361, lng: 100.6407 },
+  { name: 'บริษัท โคห์เลอร์ (ประเทศไทย)', type: 'พาร์ทเนอร์', zone: 'คลองเตย', color: '#378ADD', lat: 13.7356, lng: 100.5629 },
+  { name: 'บริษัท ทรู คอร์ปอเรชั่น', type: 'พาร์ทเนอร์ 2026', zone: 'ห้วยขวาง', color: '#06B6D4', lat: 13.7425, lng: 100.5681 },
+  { name: 'บริษัท บิ๊กซี ซูเปอร์เซ็นเตอร์', type: 'พาร์ทเนอร์ 2026', zone: 'คลองเตย', color: '#06B6D4', lat: 13.7160, lng: 100.5826 },
+  { name: 'บริษัท เคมีแมน จำกัด', type: 'พาร์ทเนอร์ 2026', zone: 'คลองเตย', color: '#06B6D4', lat: 13.7313, lng: 100.5701 },
+  { name: 'โรงเรียนวัดคลองเตย', type: 'โรงเรียน/สถาบัน', zone: 'คลองเตย', color: '#9CA3AF', lat: 13.7101, lng: 100.5609 },
+  { name: 'บริษัท จีเอเบิล จำกัด', type: 'พาร์ทเนอร์', zone: 'วัฒนา', color: '#378ADD', lat: 13.7213, lng: 100.5805 },
+  { name: 'บริษัท ลัคกี้ พลาซ่า', type: 'พาร์ทเนอร์', zone: 'สมุทรปราการ', color: '#378ADD', lat: 13.6815, lng: 100.5979 },
+  { name: 'บริษัท เฮเฟเล่ (ประเทศไทย)', type: 'พาร์ทเนอร์ 2026', zone: 'พระโขนง', color: '#06B6D4', lat: 13.6980, lng: 100.6060 },
+  { name: 'สำนักงานเขตคลองเตย', type: 'สำนักงานเขต กทม.', zone: 'คลองเตย', color: '#6B7280', lat: 13.7081, lng: 100.5837 },
+  { name: 'บริษัท ดีเคเอสเอช (DKSH)', type: 'พาร์ทเนอร์ 2026', zone: 'พระโขนง', color: '#06B6D4', lat: 13.6950, lng: 100.5966 },
+  { name: 'บริษัท แอนตัน พาร์ (Anton Paar)', type: 'องค์กรภายนอก', zone: 'ห้วยขวาง', color: '#F59E0B', lat: 13.7497, lng: 100.5737 },
+  { name: 'บริษัท โอโระ (ประเทศไทย)', type: 'พาร์ทเนอร์ 2026', zone: 'คลองเตย', color: '#06B6D4', lat: 13.7223, lng: 100.5704 },
+  { name: 'บริษัท เบอร์ลี่ ยุคเกอร์', type: 'พาร์ทเนอร์ 2026', zone: 'คลองเตย', color: '#06B6D4', lat: 13.7146, lng: 100.5859 },
+  { name: 'ธนาคารออมสิน (GSB)', type: 'ธนาคาร', zone: 'พญาไท', color: '#1D9E75', lat: 13.7445, lng: 100.5414 },
+  { name: 'บริษัท ไมเนอร์ อินเตอร์เนชั่นแนล', type: 'พาร์ทเนอร์ 2026', zone: 'คลองเตย', color: '#06B6D4', lat: 13.7211, lng: 100.5583 },
+  { name: 'บริษัท ที.โฟร์ คอนสตรัคชั่น', type: 'สปอนเซอร์', zone: 'บางแวก', color: '#D85A30', lat: 13.7392, lng: 100.5080 },
+  { name: 'บริษัท ธรรมสรณ์ จำกัด', type: 'สปอนเซอร์', zone: 'กรุงเทพฯ', color: '#D85A30', lat: 13.7447, lng: 100.5273 },
+  { name: 'โรงเรียนเทพศิรินทร์', type: 'โรงเรียน/สถาบัน', zone: 'ป้อมปราบฯ', color: '#9CA3AF', lat: 13.7470, lng: 100.5163 },
+  { name: 'สถาบันเหล็กและเหล็กกล้าฯ', type: 'พาร์ทเนอร์ 2026', zone: 'คลองเตย', color: '#06B6D4', lat: 13.7095, lng: 100.5871 },
+  { name: 'บริษัท ไพร้ซวอเตอร์เฮาส์คูเปอร์ส', type: 'พาร์ทเนอร์ 2026', zone: 'สาทร', color: '#06B6D4', lat: 13.7211, lng: 100.5483 },
+  { name: 'บริษัท เอสซีบี เท็นเอกซ์ (SCB TechX)', type: 'พาร์ทเนอร์ 2026', zone: 'จตุจักร', color: '#06B6D4', lat: 13.7272, lng: 100.5658 },
+];
+
+let projectMarkers = [];
+let partnerMarkers = [];
+
+function clearMarkers() {
+  projectMarkers.forEach(m => map.removeLayer(m));
+  partnerMarkers.forEach(m => map.removeLayer(m));
+  projectMarkers = [];
+  partnerMarkers = [];
+}
+
+function render(mode) {
+  clearMarkers();
+
+  // Projects
+  projects.forEach(p => {
+    let marker;
+    if (mode === 'hover') {
+      marker = L.circleMarker([p.lat, p.lng], {
+        radius: 10, color: '#1e3a5f', weight: 2, fillColor: '#1e3a5f', fillOpacity: 0.85
+      }).addTo(map);
+      marker.bindTooltip(`<b>${p.name}</b><br><span>โครงการ</span>`, {
+        className: 'tooltip-custom', direction: 'top', offset: [0, -8], sticky: true
+      });
+    } else {
+      // project or all mode → permanent label
+      marker = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="text-align:center;">
+            <div style="width:14px;height:14px;background:#1e3a5f;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.2);margin:0 auto;"></div>
+            <div class="project-label" style="margin-top:2px;">${p.name}</div>
+          </div>`,
+          iconSize: [150, 40], iconAnchor: [75, 7],
+        })
+      }).addTo(map);
+      marker.bindTooltip(`<b>${p.name}</b><br><span>โครงการ</span>`, {
+        className: 'tooltip-custom', direction: 'top', offset: [0, -30]
+      });
+    }
+    marker.bindPopup(`<div style="min-width:160px;"><strong style="color:#1e3a5f;font-size:13px;">${p.name}</strong><br><span style="font-size:11px;color:#888;">คลิกเพื่อดูรายละเอียด</span></div>`);
+    projectMarkers.push(marker);
+  });
+
+  // Partners
+  partners.forEach(p => {
+    let marker = L.circleMarker([p.lat, p.lng], {
+      radius: 6, color: p.color, weight: 1, fillColor: p.color, fillOpacity: 0.75
+    }).addTo(map);
+
+    if (mode === 'all') {
+      // permanent label
+      const label = L.marker([p.lat, p.lng], {
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="partner-label">${p.name.length > 25 ? p.name.substring(0, 25) + '...' : p.name}</div>`,
+          iconSize: [120, 14], iconAnchor: [60, -5],
+        }),
+        interactive: false
+      }).addTo(map);
+      partnerMarkers.push(label);
+    }
+
+    marker.bindTooltip(`<b>${p.name}</b><br><span>${p.type} · ${p.zone}</span>`, {
+      className: 'tooltip-custom', direction: 'top', offset: [0, -8], sticky: true
+    });
+    marker.bindPopup(`<div style="min-width:150px;"><strong style="font-size:12px;">${p.name}</strong><br><span style="font-size:11px;color:#888;">${p.type} · ${p.zone}</span><br><span style="font-size:10px;color:#aaa;">คลิกเพื่อดูรายละเอียด</span></div>`);
+    partnerMarkers.push(marker);
+  });
+}
+
+// Initial render
+render('hover');
+
+// Radio button handler
+document.querySelectorAll('input[name="mode"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    render(e.target.value);
+  });
+});
+</script>
+</body>
+</html>
