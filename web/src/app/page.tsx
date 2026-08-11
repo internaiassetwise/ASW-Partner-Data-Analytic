@@ -60,7 +60,7 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<Record<string, any> | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [linkedPartners, setLinkedPartners] = useState<{ name: string; entity_type: string; phone: string; email: string; admin_zone: string }[]>([]);
-  const [nearbyPartners, setNearbyPartners] = useState<{ name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number }[]>([]);
+  const [nearbyPartners, setNearbyPartners] = useState<{ name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number; lat: number; lng: number }[]>([]);
   const [selZone, setSelZone] = useState("");
   const [selProvince, setSelProvince] = useState("");
   const [selProject, setSelProject] = useState("");
@@ -310,7 +310,7 @@ export default function Home() {
               </span>
             ))}
           </div>
-          <DetailPanel selected={selectedItem} linkedPartners={linkedPartners} nearbyPartners={nearbyPartners} onClose={() => { setSelectedItem(null); setSelectedId(null); }} />
+          <DetailPanel selected={selectedItem} linkedPartners={linkedPartners} nearbyPartners={nearbyPartners} onSelectNearby={(p) => { handleSelect({ name: p.name, entity_type: p.entity_type, phone: p.phone, admin_zone: p.admin_zone, province: p.province, _lat: p.lat, _lng: p.lng }); }} onClose={() => { setSelectedItem(null); setSelectedId(null); }} />
         </main>
       </div>
     </div>

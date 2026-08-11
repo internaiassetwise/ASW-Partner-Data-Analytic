@@ -15,7 +15,7 @@ const TYPE_COLORS: Record<string, string> = {
 const NAVY = "#1e3a5f";
 
 interface LinkedPartner { name: string; entity_type: string; phone: string; email: string; admin_zone: string; }
-interface NearbyPartner { name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number; }
+interface NearbyPartner { name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number; lat: number; lng: number; }
 
 function Icon({ icon: Icon, label, value, bold }: { icon: any; label: string; value: string; bold?: boolean }) {
   return (
@@ -27,11 +27,12 @@ function Icon({ icon: Icon, label, value, bold }: { icon: any; label: string; va
 }
 
 export default function DetailPanel({
-  selected, linkedPartners, nearbyPartners = [], onClose,
+  selected, linkedPartners, nearbyPartners = [], onSelectNearby, onClose,
 }: {
   selected: Record<string, any> | null;
   linkedPartners: LinkedPartner[];
   nearbyPartners: NearbyPartner[];
+  onSelectNearby?: (partner: NearbyPartner) => void;
   onClose: () => void;
 }) {
   if (!selected) return null;
@@ -81,15 +82,6 @@ export default function DetailPanel({
             </>
           )}
         </div>
-
-        {/* Google Maps */}
-        {selected.lat && selected.lng && (
-          <a href={`https://www.google.com/maps/search/?api=1&query=${selected.lat},${selected.lng}`} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg transition border w-fit"
-            style={{ background: "#ebf5ff", color: "#378ADD", borderColor: "#bfdbfe" }}>
-            <ExternalLink className="w-3.5 h-3.5" /> เปิดใน Google Maps
-          </a>
-        )}
 
         {/* Contact */}
         {!isProject && (selected.phone || selected.email || selected.contact_name) && (
@@ -166,15 +158,15 @@ export default function DetailPanel({
             {/* Nearby partners (not yet linked) */}
             {nearbyPartners.length > 0 && (
               <div>
-                <p className="text-[11px] font-medium text-gray-400 uppercase mb-2 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  พาร์ทเนอร์ใกล้ๆ (10 กม.)
-                </p>
-                <div className="space-y-1 max-h-60 overflow-y-auto">
+                <div className="flex items-center gap-2 text-[13px] text-gray-600">
+                  <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                  พาร์ทเนอร์ใกล้ๆ (10 กม.): <b>{nearbyPartners.length}</b> ราย
+                </div>
+                <div className="space-y-1 max-h-60 overflow-y-auto mt-2">
                   {nearbyPartners.slice(0, 20).map((p, i) => {
                     const color = TYPE_COLORS[p.entity_type] || "#666";
                     return (
-                      <div key={i} className="flex items-start gap-2 text-[13px] py-1 px-2 rounded hover:bg-gray-50">
+                      <div key={i} onClick={() => onSelectNearby?.(p)} className="flex items-start gap-2 text-[13px] py-1.5 px-2 rounded hover:bg-blue-50 cursor-pointer transition">
                         <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                         <div className="flex-1 min-w-0">
                           <p className="text-gray-700 truncate">{p.name}</p>

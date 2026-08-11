@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const lngRange = radius / (111.0 * Math.cos(lat * Math.PI / 180));
 
     const res = await client.query(
-      `SELECT name, entity_type, phone, admin_zone, province,
+      `SELECT name, entity_type, phone, admin_zone, province, lat, lng,
           SQRT(POWER(69.1 * (lat - $1), 2) + POWER(69.1 * (lng - $2) * COS($1 / 57.3), 2)) * 1.609 AS distance_km
        FROM partners
        WHERE lat IS NOT NULL
