@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
         project_name: r.project_name || "",
         project_id: r.project_id,
         employee_count: r.employee_count || "",
-        join_date: r.join_date ? String(r.join_date) : "",
+        join_date: r.join_date ? new Date(r.join_date).toISOString().split("T")[0] : "",
         geo_source: r.geo_source || "",
         marketing: {
           intranet: r.m_intranet, edm: r.m_edm, line: r.m_line,

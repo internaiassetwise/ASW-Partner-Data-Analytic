@@ -14,9 +14,9 @@ interface Feature {
 interface GeoJSON { type: string; features: Feature[]; }
 
 const TYPE_LABELS: Record<string, string> = {
-  partner: "ASW Partner", sponsor: "Sponsor", bank: "Bank",
+  partner: "พาร์ทเนอร์", sponsor: "สปอนเซอร์", bank: "ธนาคาร",
   external_org: "องค์กรภายนอก", partner_2026: "พาร์ทเนอร์ 2026",
-  gov_bkk: "หน่วยงาน กทม.", gov_district: "สำนักงานเขต",
+  gov_bkk: "โรงเรียน/สถาบัน", gov_district: "สำนักงานเขต กทม.",
 };
 const TYPE_COLORS: Record<string, string> = {
   partner: "#378ADD", sponsor: "#D85A30", bank: "#1D9E75",
@@ -121,10 +121,24 @@ export default function Home() {
     setSelTypes((prev) => { const n = new Set(prev); n.has(type) ? n.delete(type) : n.add(type); return n; });
   };
 
-  const handleSelect = useCallback(async (props: Record<string, any>) => {
+  // Auto-open detail panel when project is selected from filter
+  useEffect(() => {
+    if (selProject) {
+      const proj = projects.features.find((f) => String(f.properties.id) === selProject);
+      if (proj) handleSelect(proj.properties);
+    } else {
+      // Clear panel when project filter is cleared
+      if (selectedItem?.isProject) { setSelectedItem(null); setSelectedId(null); }
+    }
+  }, [selProject, projects]);
+
+  const handleSelect = useCallback(async (props: Record<string, any>, coords?: [number, number]) => {
     setSelectedItem(props);
     setSelectedId(props.id || null);
     setLinkedPartners([]);
+    if (coords) {
+      setSelectedItem({ ...props, _lat: coords[1], _lng: coords[0] });
+    }
     if (props.isProject && props.id) {
       try { const res = await fetch(`/api/projects?id=${props.id}`); const data = await res.json(); if (data.linkedPartners) setLinkedPartners(data.linkedPartners); } catch {}
     }
@@ -245,7 +259,7 @@ export default function Home() {
               const isActive = selectedId === p.id;
               const color = TYPE_COLORS[p.entity_type as string] || "#666";
               return (
-                <div key={i} onClick={() => handleSelect(p)} className={`px-4 py-2 border-b border-gray-50 cursor-pointer transition ${isActive ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"}`}>
+                <div key={i} onClick={() => handleSelect(p, f.geometry.coordinates)} className={`px-4 py-2 border-b border-gray-50 cursor-pointer transition ${isActive ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"}`}>
                   <div className="flex items-start gap-2">
                     <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                     <div className="flex-1 min-w-0">
@@ -271,7 +285,7 @@ export default function Home() {
             partners={displayPartners}
             projects={displayProjects}
             onSelect={handleSelect}
-            flyTo={selectedItem ? { lat: (selectedItem as any).lat, lng: (selectedItem as any).lng } : null}
+            flyTo={selectedItem && (selectedItem as any)._lat ? { lat: (selectedItem as any)._lat, lng: (selectedItem as any)._lng } : null}
           />
           <div className="absolute bottom-3 left-3 bg-white/95 border border-gray-200 rounded-lg px-3 py-2 text-[12px] flex flex-nowrap gap-x-4 shadow-md z-[500] backdrop-blur-sm overflow-x-auto">
             <span className="flex items-center gap-1.5">

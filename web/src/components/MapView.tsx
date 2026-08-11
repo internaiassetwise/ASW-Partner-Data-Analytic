@@ -11,9 +11,9 @@ const TYPE_COLORS: Record<string, string> = {
   gov_bkk: "#9CA3AF", gov_district: "#6B7280",
 };
 const TYPE_LABELS: Record<string, string> = {
-  partner: "ASW Partner", sponsor: "Sponsor", bank: "Bank",
+  partner: "พาร์ทเนอร์", sponsor: "สปอนเซอร์", bank: "ธนาคาร",
   external_org: "องค์กรภายนอก", partner_2026: "พาร์ทเนอร์ 2026",
-  gov_bkk: "หน่วยงาน กทม.", gov_district: "สำนักงานเขต",
+  gov_bkk: "โรงเรียน/สถาบัน", gov_district: "สำนักงานเขต กทม.",
 };
 const NAVY = "#1e3a5f";
 

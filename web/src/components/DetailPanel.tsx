@@ -3,9 +3,9 @@
 import { FileText, MapPin, Building, Globe, Phone, Mail, User, ExternalLink, X, Building2 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
-  partner: "ASW Partner", sponsor: "Sponsor", bank: "Bank",
+  partner: "พาร์ทเนอร์", sponsor: "สปอนเซอร์", bank: "ธนาคาร",
   external_org: "องค์กรภายนอก", partner_2026: "พาร์ทเนอร์ 2026",
-  gov_bkk: "หน่วยงาน กทม.", gov_district: "สำนักงานเขต",
+  gov_bkk: "โรงเรียน/สถาบัน", gov_district: "สำนักงานเขต กทม.",
 };
 const TYPE_COLORS: Record<string, string> = {
   partner: "#378ADD", sponsor: "#D85A30", bank: "#1D9E75",
@@ -33,6 +33,7 @@ export default function DetailPanel({
   onClose: () => void;
 }) {
   if (!selected) return null;
+
   const isProject = selected.isProject;
 
   return (
@@ -151,27 +152,14 @@ export default function DetailPanel({
           </>
         )}
 
-        {/* Linked partners */}
+        {/* Partner count summary (list is in sidebar) */}
         {isProject && (
           <>
             <div className="h-px bg-gray-100" />
-            <div>
-              <p className="text-[11px] font-medium text-gray-400 uppercase mb-2">พาร์ทเนอร์ของโครงการนี้ ({linkedPartners.length})</p>
-              {linkedPartners.length === 0 ? (
-                <p className="text-[13px] text-gray-400">ยังไม่มีพาร์ทเนอร์ผูกกับโครงการนี้</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {linkedPartners.map((p, i) => (
-                    <div key={i} className="flex items-start gap-2 text-[13px] py-1 px-2 rounded hover:bg-gray-50">
-                      <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: TYPE_COLORS[p.entity_type] || "#666" }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-gray-700 truncate">{p.name}</p>
-                        <p className="text-[11px] text-gray-400">{TYPE_LABELS[p.entity_type] || p.entity_type}{p.admin_zone && ` · ${p.admin_zone}`}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="flex items-center gap-2 text-[13px] text-gray-600">
+              <User className="w-3.5 h-3.5 text-gray-400" />
+              พาร์ทเนอร์: <b>{linkedPartners.length}</b> ราย
+              <span className="text-[11px] text-gray-400">(ดูในรายการด้านซ้าย)</span>
             </div>
           </>
         )}
