@@ -72,10 +72,19 @@ export default function MapView({
 }) {
   const createClusterIcon = (cluster: { getChildCount: () => number }) => {
     const count = cluster.getChildCount();
-    let size = 40, color = "#378ADD";
-    if (count > 50) { size = 52; color = "#1D9E75"; }
+    let size = 38;
+    if (count > 100) size = 54;
+    else if (count > 50) size = 48;
+    else if (count > 20) size = 42;
+
+    let bg, text;
+    if (count <= 10)       { bg = '#e5e7eb'; text = '#6b7280'; }
+    else if (count <= 50)  { bg = '#9ca3af'; text = 'white'; }
+    else if (count <= 100) { bg = '#6b7280'; text = 'white'; }
+    else                   { bg = '#374151'; text = 'white'; }
+
     return L.divIcon({
-      html: `<div style="background:${color};color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.2);border:2px solid white;">${count}</div>`,
+      html: `<div style="background:${bg};color:${text};border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${count}</div>`,
       className: "custom-cluster", iconSize: L.point(size, size),
     });
   };

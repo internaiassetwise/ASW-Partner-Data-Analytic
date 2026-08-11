@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cluster Colors</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+  #map { height: 100vh; width: 100%; background: #f0f4f8; }
+  .picker {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 1000; background: white; border: 1px solid #e5e7eb;
+    border-radius: 10px; padding: 10px 16px; display: flex; gap: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+  .picker button {
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
+  }
+  .picker button.active { border-color: #378ADD; background: #ebf5ff; color: #378ADD; }
+  .picker button:not(.active) { background: #f9fafb; color: #6b7280; }
+  .hint {
+    position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+    background: white; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 8px 14px; font-size: 12px; color: #6b7280; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="picker">
+  <button onclick="setStyle('gray-border')" id="btn-gray-border" class="active">A: ไล่เทา + ขอบขาว</button>
+  <button onclick="setStyle('gray-noborder')" id="btn-gray-noborder">B: ไล่เทา ไม่มีขอบ</button>
+</div>
+<div class="hint">เลือกเฉดเทา 4 แบบ — โครงการ (น้ำเงินเข้ม) + พาร์ทเนอร์ (สีต่างๆ) อยู่ด้านล่าง</div>
+
+<script>
+const map = L.map('map').setView([13.735, 100.56], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
+
+const demo = [
+  { lat: 13.756, lng: 100.501, count: 7 },
+  { lat: 13.740, lng: 100.560, count: 25 },
+  { lat: 13.700, lng: 100.580, count: 71 },
+  { lat: 13.680, lng: 100.620, count: 150 },
+  { lat: 13.780, lng: 100.540, count: 3 },
+  { lat: 13.820, lng: 100.560, count: 42 },
+  { lat: 13.720, lng: 100.620, count: 88 },
+];
+
+const projects = [
+  { name: 'โมดิซ สุขุมวิท 50', lat: 13.694, lng: 100.604 },
+  { name: 'มารูน รัชดา 32', lat: 13.789, lng: 100.575 },
+];
+
+const partners = [
+  { name: 'SCB', color: '#378ADD', lat: 13.750, lng: 100.545 },
+  { name: 'BAY', color: '#1D9E75', lat: 13.760, lng: 100.555 },
+  { name: 'โรงเรียน', color: '#9CA3AF', lat: 13.770, lng: 100.535 },
+  { name: 'IKEA', color: '#06B6D4', lat: 13.735, lng: 100.575 },
+  { name: 'Big C', color: '#06B6D4', lat: 13.715, lng: 100.583 },
+];
+
+let clusterLayer = L.layerGroup().addTo(map);
+
+function getSize(count) {
+  if (count <= 10) return 34;
+  if (count <= 50) return 42;
+  if (count <= 100) return 48;
+  return 54;
+}
+
+function getGrayColor(count) {
+  if (count <= 10)       return { bg: '#e5e7eb', text: '#6b7280' };
+  else if (count <= 50)  return { bg: '#9ca3af', text: 'white' };
+  else if (count <= 100) return { bg: '#6b7280', text: 'white' };
+  else                   return { bg: '#374151', text: 'white' };
+}
+
+function setStyle(style) {
+  document.querySelectorAll('.picker button').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + style).classList.add('active');
+  clusterLayer.clearLayers();
+
+  demo.forEach(c => {
+    const size = getSize(c.count);
+    const { bg, text } = getGrayColor(c.count);
+    const borderStyle = style === 'gray-border'
+      ? 'border:2.5px solid white;'
+      : 'border:none;';
+
+    const html = `<div style="background:${bg};color:${text};border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.15);${borderStyle}">${c.count}</div>`;
+
+    L.marker([c.lat, c.lng], {
+      icon: L.divIcon({ className: '', html, iconSize: [size, size], iconAnchor: [size/2, size/2] })
+    }).addTo(clusterLayer);
+  });
+}
+
+setStyle('gray-border');
+
+// Projects
+projects.forEach(p => {
+  L.marker([p.lat, p.lng], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="text-align:center;">
+        <div style="width:14px;height:14px;background:#1e3a5f;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.2);margin:0 auto;"></div>
+        <div style="background:rgba(30,58,95,0.9);color:white;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.15);margin-top:2px;">${p.name}</div>
+      </div>`,
+      iconSize: [150, 40], iconAnchor: [75, 7],
+    })
+  }).addTo(map);
+});
+
+// Partners
+partners.forEach(p => {
+  L.circleMarker([p.lat, p.lng], {
+    radius: 5, color: p.color, weight: 1, fillColor: p.color, fillOpacity: 0.75
+  }).addTo(map).bindTooltip(`<b>${p.name}</b>`, { sticky: true });
+});
+</script>
+</body>
+</html>
