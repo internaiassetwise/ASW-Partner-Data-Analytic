@@ -18,7 +18,7 @@ export default function DetailPanel({
   linkedPartners,
   onClose,
 }: {
-  selected: Record<string, unknown> | null;
+  selected: Record<string, any> | null;
   linkedPartners: LinkedPartner[];
   onClose: () => void;
 }) {

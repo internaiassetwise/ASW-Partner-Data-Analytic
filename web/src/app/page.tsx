@@ -52,7 +52,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedItem, setSelectedItem] = useState<Record<string, unknown> | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Record<string, any> | null>(null);
   const [linkedPartners, setLinkedPartners] = useState<{ name: string; entity_type: string; phone: string; email: string; admin_zone: string }[]>([]);
   const [selZone, setSelZone] = useState("");
   const [selProvince, setSelProvince] = useState("");
@@ -132,7 +132,7 @@ export default function Home() {
     });
   };
 
-  const handleSelect = useCallback(async (props: Record<string, unknown>) => {
+  const handleSelect = useCallback(async (props: Record<string, any>) => {
     setSelectedItem(props);
     setLinkedPartners([]);
     if (props.isProject && props.id) {

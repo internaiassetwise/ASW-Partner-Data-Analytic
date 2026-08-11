@@ -64,7 +64,7 @@ export default function MapView({
 }: {
   partners: { type: string; features: Feature[] };
   projects: { type: string; features: Feature[] };
-  onSelect: (props: Record<string, unknown>) => void;
+  onSelect: (props: Record<string, any>) => void;
 }) {
   const createClusterIcon = (cluster: { getChildCount: () => number }) => {
     const count = cluster.getChildCount();
