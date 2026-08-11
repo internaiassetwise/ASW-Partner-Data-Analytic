@@ -60,6 +60,7 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<Record<string, any> | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [linkedPartners, setLinkedPartners] = useState<{ name: string; entity_type: string; phone: string; email: string; admin_zone: string }[]>([]);
+  const [nearbyPartners, setNearbyPartners] = useState<{ name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number }[]>([]);
   const [selZone, setSelZone] = useState("");
   const [selProvince, setSelProvince] = useState("");
   const [selProject, setSelProject] = useState("");
@@ -136,11 +137,23 @@ export default function Home() {
     setSelectedItem(props);
     setSelectedId(props.id || null);
     setLinkedPartners([]);
+    setNearbyPartners([]);
     if (coords) {
       setSelectedItem({ ...props, _lat: coords[1], _lng: coords[0] });
     }
     if (props.isProject && props.id) {
-      try { const res = await fetch(`/api/projects?id=${props.id}`); const data = await res.json(); if (data.linkedPartners) setLinkedPartners(data.linkedPartners); } catch {}
+      const lat = coords ? coords[1] : (props as any)._lat;
+      const lng = coords ? coords[0] : (props as any)._lng;
+      try {
+        const [projRes, nearbyRes] = await Promise.all([
+          fetch(`/api/projects?id=${props.id}`),
+          fetch(`/api/nearby?lat=${lat}&lng=${lng}&radius=10&excludeProjectId=${props.id}`),
+        ]);
+        const projData = await projRes.json();
+        if (projData.linkedPartners) setLinkedPartners(projData.linkedPartners);
+        const nearbyData = await nearbyRes.json();
+        if (nearbyData.partners) setNearbyPartners(nearbyData.partners);
+      } catch {}
     }
   }, []);
 
@@ -297,7 +310,7 @@ export default function Home() {
               </span>
             ))}
           </div>
-          <DetailPanel selected={selectedItem} linkedPartners={linkedPartners} onClose={() => { setSelectedItem(null); setSelectedId(null); }} />
+          <DetailPanel selected={selectedItem} linkedPartners={linkedPartners} nearbyPartners={nearbyPartners} onClose={() => { setSelectedItem(null); setSelectedId(null); }} />
         </main>
       </div>
     </div>

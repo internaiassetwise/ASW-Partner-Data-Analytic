@@ -15,6 +15,7 @@ const TYPE_COLORS: Record<string, string> = {
 const NAVY = "#1e3a5f";
 
 interface LinkedPartner { name: string; entity_type: string; phone: string; email: string; admin_zone: string; }
+interface NearbyPartner { name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number; }
 
 function Icon({ icon: Icon, label, value, bold }: { icon: any; label: string; value: string; bold?: boolean }) {
   return (
@@ -26,10 +27,11 @@ function Icon({ icon: Icon, label, value, bold }: { icon: any; label: string; va
 }
 
 export default function DetailPanel({
-  selected, linkedPartners, onClose,
+  selected, linkedPartners, nearbyPartners = [], onClose,
 }: {
   selected: Record<string, any> | null;
   linkedPartners: LinkedPartner[];
+  nearbyPartners: NearbyPartner[];
   onClose: () => void;
 }) {
   if (!selected) return null;
@@ -152,15 +154,45 @@ export default function DetailPanel({
           </>
         )}
 
-        {/* Partner count summary (list is in sidebar) */}
+        {/* Partner count + nearby partners */}
         {isProject && (
           <>
             <div className="h-px bg-gray-100" />
             <div className="flex items-center gap-2 text-[13px] text-gray-600">
               <User className="w-3.5 h-3.5 text-gray-400" />
-              พาร์ทเนอร์: <b>{linkedPartners.length}</b> ราย
-              <span className="text-[11px] text-gray-400">(ดูในรายการด้านซ้าย)</span>
+              พาร์ทเนอร์ที่ผูกแล้ว: <b>{linkedPartners.length}</b> ราย
             </div>
+
+            {/* Nearby partners (not yet linked) */}
+            {nearbyPartners.length > 0 && (
+              <div>
+                <p className="text-[11px] font-medium text-gray-400 uppercase mb-2 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  พาร์ทเนอร์ใกล้ๆ (10 กม.)
+                </p>
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {nearbyPartners.slice(0, 20).map((p, i) => {
+                    const color = TYPE_COLORS[p.entity_type] || "#666";
+                    return (
+                      <div key={i} className="flex items-start gap-2 text-[13px] py-1 px-2 rounded hover:bg-gray-50">
+                        <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-700 truncate">{p.name}</p>
+                          <p className="text-[11px] text-gray-400">
+                            {TYPE_LABELS[p.entity_type] || p.entity_type}
+                            {p.admin_zone && ` · ${p.admin_zone}`}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-blue-500 font-medium shrink-0 mt-0.5">{p.distance_km} กม.</span>
+                      </div>
+                    );
+                  })}
+                  {nearbyPartners.length > 20 && (
+                    <p className="text-[11px] text-gray-400 text-center py-1">+{nearbyPartners.length - 20} ราย</p>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
