@@ -12,6 +12,7 @@
     "agentation": "^3.0.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
+    "lucide-react": "^1.31.0",
     "next": "16.3.0",
     "pg": "^8.23.0",
     "react": "19.2.8",
