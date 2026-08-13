@@ -122,6 +122,11 @@ body {
     0 3px 8px rgb(12 42 68 / 28%);
 }
 
+.nearby-partner-marker--approximate {
+  opacity: 0.62;
+  border-style: dashed;
+}
+
 /* AssetWise project marker — 34px teardrop divIcon with a Tabler building. */
 .project-marker {
   position: relative;

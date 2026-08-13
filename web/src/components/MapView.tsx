@@ -104,25 +104,26 @@ function makeProjectIcon() {
   });
 }
 
-function makeNearbyPartnerIcon(name: string, color: string) {
+function makeNearbyPartnerIcon(name: string, color: string, approximate: boolean) {
   const safeName = escapeHtml(name);
   const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : "#66717E";
   return L.divIcon({
     className: "",
-    html: `<div class="nearby-partner-marker" style="--nearby-marker-color:${safeColor}" role="img" aria-label="${safeName}"></div>`,
+    html: `<div class="nearby-partner-marker${approximate ? " nearby-partner-marker--approximate" : ""}" style="--nearby-marker-color:${safeColor}" role="img" aria-label="${safeName}${approximate ? " พิกัดโดยประมาณ" : ""}"></div>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });
 }
 
 export default function MapView({
-  partners, projects, nearbyPartners, focusCoordinates, selectedProjectId, detailPanelOpen, onSelect, onSelectNearby, flyTo,
+  partners, projects, nearbyPartners, focusCoordinates, selectedProjectId, showProjectLabels, detailPanelOpen, onSelect, onSelectNearby, flyTo,
 }: {
     partners: GeoJSON<PartnerProperties>;
     projects: GeoJSON<ProjectProperties>;
     nearbyPartners: NearbyPartner[];
     focusCoordinates: [number, number][] | null;
     selectedProjectId: number | null;
+    showProjectLabels: boolean;
     detailPanelOpen: boolean;
     onSelect: (props: MapProperties) => void;
     onSelectNearby: (partner: NearbyPartner) => void;
@@ -156,9 +157,9 @@ export default function MapView({
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
       <ZoomControl position="topleft" />
 
-      {/* Keep overview readable: all pins stay visible, while labels appear only
-          after zooming in or for the currently selected project. */}
-      <ProjectMarkers projects={projects} selectedProjectId={selectedProjectId} onSelect={onSelect} />
+      {/* Keep the nationwide overview readable, but reveal every remaining
+          project name as soon as the user filters to a province or district. */}
+      <ProjectMarkers projects={projects} selectedProjectId={selectedProjectId} showProjectLabels={showProjectLabels} onSelect={onSelect} />
 
       {/* Partners — dot + permanent label + cluster */}
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} showCoverageOnHover={false} maxClusterRadius={50}>
@@ -207,9 +208,10 @@ function ResetButton() {
   );
 }
 
-function ProjectMarkers({ projects, selectedProjectId, onSelect }: {
+function ProjectMarkers({ projects, selectedProjectId, showProjectLabels, onSelect }: {
   projects: GeoJSON<ProjectProperties>;
   selectedProjectId: number | null;
+  showProjectLabels: boolean;
   onSelect: (properties: MapProperties) => void;
 }) {
   const map = useMap();
@@ -225,7 +227,7 @@ function ProjectMarkers({ projects, selectedProjectId, onSelect }: {
     <ProjectMarker
       key={`proj-${feature.properties.id}`}
       feature={feature}
-      showLabel={(selectedProjectId !== null && String(feature.properties.id) === String(selectedProjectId)) || zoom >= 13}
+      showLabel={showProjectLabels || (selectedProjectId !== null && String(feature.properties.id) === String(selectedProjectId)) || zoom >= 13}
       onSelect={onSelect}
     />
   ));
@@ -273,17 +275,18 @@ function PartnerMarker({ feature, onSelect }: { feature: GeoFeature<PartnerPrope
 
 function NearbyPartnerMarker({ partner, onSelect }: { partner: NearbyPartner; onSelect: (partner: NearbyPartner) => void }) {
   const color = TYPE_COLORS[partner.entity_type] || "#66717E";
+  const approximate = partner.geo_precision !== "precise";
   return (
     <Marker
       position={[partner.lat, partner.lng]}
-      icon={makeNearbyPartnerIcon(partner.name, color)}
+      icon={makeNearbyPartnerIcon(partner.name, color, approximate)}
       eventHandlers={{ click: () => onSelect(partner) }}
     >
       <Tooltip direction="top" offset={[0, -10]}>
         <div>
           <b>{partner.name}</b><br />
           <span style={{ color: "#6B7280", fontSize: "10px" }}>
-            {TYPE_LABELS[partner.entity_type] || partner.entity_type} · {partner.distance_km} กม.
+            {TYPE_LABELS[partner.entity_type] || partner.entity_type} · {approximate && "พิกัดโดยประมาณ · ≈"}{partner.distance_km} กม.
           </span>
         </div>
       </Tooltip>

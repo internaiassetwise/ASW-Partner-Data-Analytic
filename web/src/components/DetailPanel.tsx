@@ -49,6 +49,7 @@ export default function DetailPanel({
   if (!selected) return null;
 
   const isProject = isProjectProperties(selected);
+  const approximateNearbyCount = nearbyPartners.filter((partner) => partner.geo_precision !== "precise").length;
 
   return (
     <div className="absolute top-0 right-0 bottom-0 w-80 max-sm:w-full bg-white border-l border-[#DDE4EA] shadow-[0_12px_32px_rgba(12,42,68,0.16)] z-[600] overflow-y-auto">
@@ -80,7 +81,7 @@ export default function DetailPanel({
               </span>
               {selected._distanceKm != null && (
                 <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-[#CFE5F7] bg-[#EAF4FD] text-[#23699F]">
-                  <MapPin className="h-3 w-3" /> ห่างจากโครงการ {selected._distanceKm} กม.
+                  <MapPin className="h-3 w-3" /> {selected._geoPrecision !== "precise" ? "ระยะทางโดยประมาณ ≈" : "ห่างจากโครงการ "}{selected._distanceKm} กม.
                 </span>
               )}
             </div>
@@ -198,6 +199,7 @@ export default function DetailPanel({
                   <div className="rounded-lg border border-[#CFE5F7] bg-[#EAF4FD] px-3 py-2.5">
                     <div className="flex items-center gap-1.5 text-[11px] text-[#23699F]"><MapPin className="h-3.5 w-3.5" /> ใกล้ 10 กม.</div>
                     <p className="mt-1 text-xl font-semibold text-[#23699F]">{nearbyPartners.length}<span className="ml-1 text-[11px] font-normal">ราย</span></p>
+                    {approximateNearbyCount > 0 && <p className="mt-0.5 text-[9px] text-[#6B7280]">พิกัดโดยประมาณ {approximateNearbyCount} ราย</p>}
                   </div>
                 </div>
                 <p className="rounded-lg bg-[#F6F8FA] px-3 py-2 text-[10px] leading-relaxed text-[#6B7280]">

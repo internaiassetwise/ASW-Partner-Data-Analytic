@@ -30,6 +30,7 @@ ALLOWED_ENTITY_TYPES = {
 }
 ALLOWED_GEO_SOURCE = {"file", "osm", "manual", "google"}
 MARKETING_COLS = ["m_intranet", "m_edm", "m_line", "m_standee", "m_poster", "m_booth", "m_leaflet"]
+MERGED_DUPLICATE_EXTERNAL_IDS = ["8aeb7cd6c41075d3"]
 
 # Maps the "In zone Project" text used by partner_2026 (Latin script) to the
 # actual project name as written in the projects file (Thai script). 7 entries,
@@ -112,6 +113,7 @@ def build_record(row):
         "lat": lat,
         "lng": lng,
         "geo_source": row.get("geo_source") or None,
+        "geo_precision": row.get("geo_precision") or None,
         "status": row.get("status") or None,
         "line_id": row.get("line_id") or None,
         "follow": row.get("follow") or None,
@@ -193,7 +195,7 @@ UPSERT_SQL = """
 INSERT INTO partners (
     external_id, entity_type, name, email, phone, contact_name, street, city,
     address_full, employee_count, join_date, project_zone, project_id,
-    admin_zone, subzone, province, lat, lng, geo_source, status, line_id, follow,
+    admin_zone, subzone, province, lat, lng, geo_source, geo_precision, status, line_id, follow,
     m_intranet, m_edm, m_line, m_standee, m_poster, m_booth, m_leaflet,
     remark, notes, source_file, source_sheet, source_row, raw_data
 ) VALUES (
@@ -201,7 +203,7 @@ INSERT INTO partners (
     %(contact_name)s, %(street)s, %(city)s, %(address_full)s, %(employee_count)s,
     %(join_date)s, %(project_zone)s, %(project_id)s,
     %(admin_zone)s, %(subzone)s, %(province)s,
-    %(lat)s, %(lng)s, %(geo_source)s, %(status)s, %(line_id)s, %(follow)s,
+    %(lat)s, %(lng)s, %(geo_source)s, %(geo_precision)s, %(status)s, %(line_id)s, %(follow)s,
     %(m_intranet)s, %(m_edm)s, %(m_line)s, %(m_standee)s, %(m_poster)s,
     %(m_booth)s, %(m_leaflet)s, %(remark)s, %(notes)s, %(source_file)s,
     %(source_sheet)s, %(source_row)s, %(raw_data)s
@@ -214,7 +216,8 @@ ON CONFLICT (external_id) DO UPDATE SET
     project_zone=EXCLUDED.project_zone, project_id=EXCLUDED.project_id,
     admin_zone=EXCLUDED.admin_zone,
     subzone=EXCLUDED.subzone, province=EXCLUDED.province, lat=EXCLUDED.lat,
-    lng=EXCLUDED.lng, geo_source=EXCLUDED.geo_source, status=EXCLUDED.status,
+    lng=EXCLUDED.lng, geo_source=EXCLUDED.geo_source,
+    geo_precision=EXCLUDED.geo_precision, status=EXCLUDED.status,
     line_id=EXCLUDED.line_id, follow=EXCLUDED.follow,
     m_intranet=EXCLUDED.m_intranet, m_edm=EXCLUDED.m_edm, m_line=EXCLUDED.m_line,
     m_standee=EXCLUDED.m_standee, m_poster=EXCLUDED.m_poster,
@@ -279,7 +282,7 @@ def main():
 
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
-    proj_ins = proj_upd = part_ins = part_upd = cleanup_del = 0
+    proj_ins = proj_upd = part_ins = part_upd = cleanup_del = merged_cleanup_del = 0
     unmatched = []
     try:
         with conn.cursor() as cur:
@@ -299,6 +302,11 @@ def main():
             # 3) cleanup: remove old project rows previously loaded into partners
             cur.execute("DELETE FROM partners WHERE entity_type = 'project';")
             cleanup_del = cur.rowcount
+            cur.execute(
+                "DELETE FROM partners WHERE external_id = ANY(%s);",
+                (MERGED_DUPLICATE_EXTERNAL_IDS,),
+            )
+            merged_cleanup_del = cur.rowcount
 
             # 4) upsert partners with project_id resolved
             cur.execute("SELECT external_id FROM partners;")
@@ -348,8 +356,8 @@ def main():
     lines.append(f"Rejected: {len(rejected)}\n")
     lines.append("projects: inserted=%d updated=%d -> DB total %d"
                  % (proj_ins, proj_upd, proj_total))
-    lines.append("partners: inserted=%d updated=%d (cleanup deleted %d old project rows) -> DB total %d"
-                 % (part_ins, part_upd, cleanup_del, part_total))
+    lines.append("partners: inserted=%d updated=%d (cleanup deleted %d old project rows, %d merged duplicates) -> DB total %d"
+                 % (part_ins, part_upd, cleanup_del, merged_cleanup_del, part_total))
     lines.append(f"partners linked to a project (project_id): {linked}\n")
     lines.append("## projects per zone (top)\n")
     for z, c in proj_by_zone:

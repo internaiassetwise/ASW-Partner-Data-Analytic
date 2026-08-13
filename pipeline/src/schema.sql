@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS partners (
     lat             DOUBLE PRECISION,
     lng             DOUBLE PRECISION,
     geo_source      TEXT,                            -- 'file' | 'osm' | 'manual'
+    geo_precision   TEXT,                            -- 'precise' | 'district' | 'city' | 'approximate'
     status          TEXT,                            -- project status: RTM / Pre-sale / ...
     line_id         TEXT,
     follow          TEXT,
@@ -71,6 +72,9 @@ CREATE TABLE IF NOT EXISTS partners (
     )
 );
 
+-- Existing deployments predate geo_precision; keep migrations idempotent.
+ALTER TABLE partners ADD COLUMN IF NOT EXISTS geo_precision TEXT;
+
 
 -- ---------- indexes (filter columns used by the website) ----------
 CREATE INDEX IF NOT EXISTS idx_partners_entity_type  ON partners(entity_type);
@@ -79,6 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_partners_province     ON partners(province);
 CREATE INDEX IF NOT EXISTS idx_partners_admin_zone   ON partners(admin_zone);
 CREATE INDEX IF NOT EXISTS idx_partners_project_zone ON partners(project_zone);
 CREATE INDEX IF NOT EXISTS idx_partners_status       ON partners(status);
+CREATE INDEX IF NOT EXISTS idx_partners_geo_precision ON partners(geo_precision);
 -- composite: typical list view filter (type + zone)
 CREATE INDEX IF NOT EXISTS idx_partners_type_zone    ON partners(entity_type, admin_zone);
 -- spatial index for "nearest partner to project" style queries
@@ -147,4 +152,3 @@ ALTER TABLE partners DROP CONSTRAINT IF EXISTS chk_geo_source;
 ALTER TABLE partners ADD CONSTRAINT chk_geo_source CHECK (
     geo_source IS NULL OR geo_source IN ('file', 'osm', 'manual', 'google')
 );
-

@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       `SELECT p.id, p.name, p.entity_type, p.phone, p.email, p.contact_name,
           p.address_full, p.admin_zone, p.subzone, p.province, p.project_id,
           pr.name AS project_name, p.lat, p.lng,
+          COALESCE(p.geo_precision, 'approximate') AS geo_precision,
           SQRT(POWER(69.1 * (p.lat - $1), 2) + POWER(69.1 * (p.lng - $2) * COS($1 / 57.3), 2)) * 1.609 AS distance_km
        FROM partners p
        LEFT JOIN projects pr ON p.project_id = pr.id
@@ -33,8 +34,7 @@ export async function GET(req: NextRequest) {
          AND p.lng BETWEEN $2 - $4 AND $2 + $4
          AND SQRT(POWER(69.1 * (p.lat - $1), 2) + POWER(69.1 * (p.lng - $2) * COS($1 / 57.3), 2)) * 1.609 <= $5
          AND ($6::int IS NULL OR p.project_id IS DISTINCT FROM $6::int)
-       ORDER BY distance_km
-       LIMIT 50`,
+       ORDER BY CASE WHEN p.geo_precision = 'precise' THEN 0 ELSE 1 END, distance_km`,
       [lat, lng, latRange, lngRange, radius, Number.isFinite(excludeProjectId) ? excludeProjectId : null]
     );
 

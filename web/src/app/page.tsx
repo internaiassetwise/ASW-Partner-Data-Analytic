@@ -58,6 +58,7 @@ function nearbyToPartner(partner: NearbyPartner): PartnerProperties {
     _lat: partner.lat,
     _lng: partner.lng,
     _distanceKm: partner.distance_km,
+    _geoPrecision: partner.geo_precision,
   };
 }
 
@@ -172,10 +173,18 @@ export default function Home() {
     features: applyFilters(allPartners.features, filterOpts),
   }), [allPartners, filterOpts]);
 
+  // The geographic filters apply to both entity layers. Previously they only
+  // filtered partners, leaving every AssetWise project visible on the map and
+  // in the project dropdown.
+  const areaFilteredProjectFeatures = useMemo(() => projects.features.filter((feature) => (
+    (!selProvince || feature.properties.province === selProvince)
+    && (!selZone || feature.properties.admin_zone === selZone)
+  )), [projects, selProvince, selZone]);
+
   const displayProjects = useMemo<GeoJSON<ProjectProperties>>(() => {
-    if (!selProject) return projects;
+    if (!selProject) return { ...projects, features: areaFilteredProjectFeatures };
     return { ...projects, features: projects.features.filter((f) => String(f.properties.id) === selProject) };
-  }, [projects, selProject]);
+  }, [areaFilteredProjectFeatures, projects, selProject]);
 
   const filteredNearbyPartners = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -196,19 +205,29 @@ export default function Home() {
     return counts;
   }, [nearbyPartners, searchQuery]);
 
-  // Keep the rendered project layer unchanged, but focus the camera only on
-  // partner coordinates inside the selected province/district. Including every
-  // project here would expand the bounds nationwide and cancel the area zoom.
+  const approximateNearbyCount = useMemo(
+    () => nearbyPartners.filter((partner) => partner.geo_precision !== "precise").length,
+    [nearbyPartners],
+  );
+
+  // Focus the camera on every visible entity in the selected area. Projects are
+  // now area-filtered too, so including them no longer expands the bounds
+  // nationwide and areas with few partners still zoom to the right location.
   const geographicFocusCoordinates = useMemo<[number, number][] | null>(() => {
     if (selProject || (!selProvince && !selZone)) return null;
 
-    return allPartners.features
+    const partnerCoordinates = allPartners.features
       .filter((feature) => (
         (!selProvince || feature.properties.province === selProvince)
         && (!selZone || feature.properties.admin_zone === selZone)
       ))
       .map((feature) => feature.geometry.coordinates);
-  }, [allPartners, selProject, selProvince, selZone]);
+
+    return [
+      ...partnerCoordinates,
+      ...areaFilteredProjectFeatures.map((feature) => feature.geometry.coordinates),
+    ];
+  }, [allPartners, areaFilteredProjectFeatures, selProject, selProvince, selZone]);
 
   // Nearby results are returned separately from the filtered partner dataset.
   // Only add results that are not already present in the main marker layer.
@@ -358,7 +377,7 @@ export default function Home() {
     return counts;
   }, [allPartners]);
 
-  const projectList = projects.features.map((feature) => ({
+  const projectList = areaFilteredProjectFeatures.map((feature) => ({
     id: feature.properties.id,
     name: feature.properties.name,
     partnerCount: projectPartnerCounts[feature.properties.id] || 0,
@@ -372,7 +391,7 @@ export default function Home() {
   const searchPlaceholder = isProjectMode
     ? projectListMode === "nearby"
       ? "ค้นหาในพาร์ทเนอร์ใกล้เคียง..."
-      : "ค้นหาในพาร์ทเนอร์ที่ผูกไว้..."
+      : "ค้นหาพาร์ทเนอร์โครงการ..."
     : "ค้นหาชื่อพาร์ทเนอร์...";
 
   return (
@@ -408,6 +427,7 @@ export default function Home() {
                 </span>
                 <span className="text-xs px-2.5 py-1 rounded-md font-medium border" style={{ background: "#EAF4FD", color: "#23699F", borderColor: "#CFE5F7" }}>
                   ใกล้ 10 กม. {detailLoading ? "…" : nearbyPartners.length}
+                  {!detailLoading && approximateNearbyCount > 0 && ` · โดยประมาณ ${approximateNearbyCount}`}
                 </span>
               </>
             ) : (
@@ -540,10 +560,13 @@ export default function Home() {
           </div>
 
           {/* Partner list header */}
-          <div className="list-heading px-4 py-1.5 border-b">
+          <div className="list-heading flex items-center justify-between gap-2 px-4 py-1.5 border-b">
             <span className="text-[11px] font-semibold text-[#6B7280] uppercase">
               {isProjectMode ? (projectListMode === "nearby" ? "พาร์ทเนอร์ใกล้เคียง" : "พาร์ทเนอร์โครงการ") : "รายชื่อ"} ({visibleListCount})
             </span>
+            {isProjectMode && projectListMode === "nearby" && approximateNearbyCount > 0 && (
+              <span className="shrink-0 text-[9px] font-medium text-[#8793A0]">โดยประมาณ {approximateNearbyCount}</span>
+            )}
           </div>
 
           {/* Partner list */}
@@ -557,9 +580,12 @@ export default function Home() {
                     <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                     <div className="flex-1 min-w-0">
                       <p className={`text-[13px] truncate ${isActive ? "font-medium text-[#0C2A44]" : "text-[#1F2937]"}`}>{partner.name}</p>
-                      <p className="text-[11px] text-[#6B7280]">{TYPE_LABELS[partner.entity_type]}{partner.admin_zone && ` · ${partner.admin_zone}`}</p>
+                      <p className="text-[11px] text-[#6B7280]">
+                        {TYPE_LABELS[partner.entity_type]}{partner.admin_zone && ` · ${partner.admin_zone}`}
+                        {partner.geo_precision !== "precise" && " · พิกัดโดยประมาณ"}
+                      </p>
                     </div>
-                    <span className="flex shrink-0 items-center gap-0.5 pt-0.5 text-[10px] font-medium text-[#2F7FBE]"><MapPin className="h-3 w-3" />{partner.distance_km} กม.</span>
+                    <span className="flex shrink-0 items-center gap-0.5 pt-0.5 text-[10px] font-medium text-[#2F7FBE]"><MapPin className="h-3 w-3" />{partner.geo_precision !== "precise" && "≈"}{partner.distance_km} กม.</span>
                   </div>
                 </button>
               );
@@ -611,6 +637,7 @@ export default function Home() {
             nearbyPartners={nearbyPartnersOnMap}
             focusCoordinates={geographicFocusCoordinates}
             selectedProjectId={selProject ? Number(selProject) : null}
+            showProjectLabels={Boolean(selProvince || selZone)}
             detailPanelOpen={selectedItem !== null}
             onSelect={handleSelect}
             onSelectNearby={(partner) => void handleSelect(nearbyToPartner(partner))}

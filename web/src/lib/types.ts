@@ -7,6 +7,8 @@ export type EntityType =
   | "gov_bkk"
   | "gov_district";
 
+export type GeoPrecision = "precise" | "district" | "city" | "approximate" | "file";
+
 export interface MarketingChannels {
   intranet: boolean;
   edm: boolean;
@@ -39,6 +41,7 @@ export interface PartnerProperties {
   _lat?: number;
   _lng?: number;
   _distanceKm?: number;
+  _geoPrecision?: GeoPrecision;
   isProject?: false;
 }
 
@@ -94,6 +97,7 @@ export interface NearbyPartner {
   province: string;
   project_name: string;
   project_id: number | null;
+  geo_precision: GeoPrecision;
   distance_km: number;
   lat: number;
   lng: number;
