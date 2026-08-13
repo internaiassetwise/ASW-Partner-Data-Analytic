@@ -1,35 +1,70 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Search, X, Download } from "lucide-react";
+import Image from "next/image";
+import { AlertCircle, Check, Link2, MapPin, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import type {
+  EntityType,
+  GeoFeature,
+  GeoJSON,
+  LinkedPartner,
+  MapProperties,
+  NearbyPartner,
+  PartnerProperties,
+  ProjectProperties,
+} from "@/lib/types";
+import { isProjectProperties } from "@/lib/types";
+import { ENTITY_COLORS as TYPE_COLORS, ENTITY_TINTS as TYPE_TINTS } from "@/lib/entityStyles";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 const DetailPanel = dynamic(() => import("@/components/DetailPanel"), { ssr: false });
 
-interface Feature {
-  geometry: { coordinates: [number, number] };
-  properties: Record<string, any>;
-}
-interface GeoJSON { type: string; features: Feature[]; }
-
-const TYPE_LABELS: Record<string, string> = {
+const TYPE_LABELS: Record<EntityType, string> = {
   partner: "พาร์ทเนอร์", sponsor: "สปอนเซอร์", bank: "ธนาคาร",
   external_org: "องค์กรภายนอก", partner_2026: "พาร์ทเนอร์ 2026",
   gov_bkk: "โรงเรียน/สถาบัน", gov_district: "สำนักงานเขต กทม.",
 };
-const TYPE_COLORS: Record<string, string> = {
-  partner: "#378ADD", sponsor: "#D85A30", bank: "#1D9E75",
-  external_org: "#F59E0B", partner_2026: "#06B6D4",
-  gov_bkk: "#9CA3AF", gov_district: "#6B7280",
-};
-const ALL_TYPES = Object.keys(TYPE_LABELS);
-const NAVY = "#1e3a5f";
+const ALL_TYPES = Object.keys(TYPE_LABELS) as EntityType[];
+const NAVY = "#0C2A44";
+
+async function readJson<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    throw new Error(`Request failed (${response.status})`);
+  }
+  return response.json() as Promise<T>;
+}
+
+function nearbyToPartner(partner: NearbyPartner): PartnerProperties {
+  return {
+    id: partner.id,
+    name: partner.name,
+    entity_type: partner.entity_type,
+    email: partner.email,
+    phone: partner.phone,
+    contact_name: partner.contact_name,
+    address_full: partner.address_full,
+    admin_zone: partner.admin_zone,
+    subzone: partner.subzone,
+    province: partner.province,
+    project_zone: "",
+    project_name: partner.project_name,
+    project_id: partner.project_id,
+    employee_count: "",
+    join_date: "",
+    geo_source: "nearby",
+    marketing: { intranet: false, edm: false, line: false, standee: false, poster: false, booth: false, leaflet: false },
+    remark: "",
+    _lat: partner.lat,
+    _lng: partner.lng,
+    _distanceKm: partner.distance_km,
+  };
+}
 
 // Helper: apply a set of filters to features, optionally excluding one dimension
-function applyFilters(features: Feature[], opts: {
+function applyFilters(features: GeoFeature<PartnerProperties>[], opts: {
   zone?: string; province?: string; projectId?: string;
-  types?: Set<string>; search?: string;
+  types?: Set<EntityType>; search?: string;
   exclude?: "zone" | "province" | "projectId" | "types" | "search";
 }) {
   let result = features;
@@ -53,26 +88,57 @@ function applyFilters(features: Feature[], opts: {
 }
 
 export default function Home() {
-  const [allPartners, setAllPartners] = useState<GeoJSON>({ type: "FeatureCollection", features: [] });
-  const [projects, setProjects] = useState<GeoJSON>({ type: "FeatureCollection", features: [] });
+  const [allPartners, setAllPartners] = useState<GeoJSON<PartnerProperties>>({ type: "FeatureCollection", features: [] });
+  const [projects, setProjects] = useState<GeoJSON<ProjectProperties>>({ type: "FeatureCollection", features: [] });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedItem, setSelectedItem] = useState<Record<string, any> | null>(null);
+  const [selectedItem, setSelectedItem] = useState<MapProperties | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [linkedPartners, setLinkedPartners] = useState<{ name: string; entity_type: string; phone: string; email: string; admin_zone: string }[]>([]);
-  const [nearbyPartners, setNearbyPartners] = useState<{ name: string; entity_type: string; phone: string; admin_zone: string; province: string; distance_km: number; lat: number; lng: number }[]>([]);
+  const [linkedPartners, setLinkedPartners] = useState<LinkedPartner[]>([]);
+  const [nearbyPartners, setNearbyPartners] = useState<NearbyPartner[]>([]);
   const [selZone, setSelZone] = useState("");
   const [selProvince, setSelProvince] = useState("");
   const [selProject, setSelProject] = useState("");
-  const [selTypes, setSelTypes] = useState<Set<string>>(new Set(ALL_TYPES));
+  const [selTypes, setSelTypes] = useState<Set<EntityType>>(new Set(ALL_TYPES));
+  const [projectListMode, setProjectListMode] = useState<"linked" | "nearby">("linked");
+  const [showSidebar, setShowSidebar] = useState(false);
+  const detailRequestRef = useRef<AbortController | null>(null);
 
   // Fetch ALL data once
   useEffect(() => {
-    fetch("/api/partners").then((r) => r.json()).then((d) => { setAllPartners(d); setLoading(false); });
-    fetch("/api/projects").then((r) => r.json()).then(setProjects);
-  }, []);
+    const controller = new AbortController();
+    Promise.all([
+      fetch("/api/partners", { signal: controller.signal }).then((response) => readJson<GeoJSON<PartnerProperties>>(response)),
+      fetch("/api/projects", { signal: controller.signal }).then((response) => readJson<GeoJSON<ProjectProperties>>(response)),
+    ])
+      .then(([partnerData, projectData]) => {
+        setAllPartners(partnerData);
+        setProjects(projectData);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLoadError("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
 
-  const filterOpts = { zone: selZone, province: selProvince, projectId: selProject, types: selTypes, search: searchQuery };
+    return () => controller.abort();
+  }, [loadAttempt]);
+
+  useEffect(() => () => detailRequestRef.current?.abort(), []);
+
+  const filterOpts = useMemo(() => ({
+    zone: selZone,
+    province: selProvince,
+    projectId: selProject,
+    types: selTypes,
+    search: searchQuery,
+  }), [selZone, selProvince, selProject, selTypes, searchQuery]);
 
   // Cascading: available options for each dimension (excluding that dimension's own filter)
   const availableZones = useMemo(() => {
@@ -85,134 +151,317 @@ export default function Home() {
     return [...new Set(filtered.map((f) => f.properties.province).filter(Boolean))].sort();
   }, [allPartners, filterOpts]);
 
-  const availableTypes = useMemo(() => {
+  const availableTypeCounts = useMemo(() => {
     const filtered = applyFilters(allPartners.features, { ...filterOpts, exclude: "types" });
-    const counts: Record<string, number> = {};
+    const counts = Object.fromEntries(ALL_TYPES.map((type) => [type, 0])) as Record<EntityType, number>;
     filtered.forEach((f) => { const t = f.properties.entity_type; counts[t] = (counts[t] || 0) + 1; });
-    return ALL_TYPES.filter((t) => counts[t] > 0).map((t) => ({ value: t, count: counts[t] }));
+    return counts;
   }, [allPartners, filterOpts]);
 
+  const zoneOptions = useMemo(() => (
+    selZone && !availableZones.includes(selZone) ? [selZone, ...availableZones] : availableZones
+  ), [availableZones, selZone]);
+
+  const provinceOptions = useMemo(() => (
+    selProvince && !availableProvinces.includes(selProvince) ? [selProvince, ...availableProvinces] : availableProvinces
+  ), [availableProvinces, selProvince]);
+
   // Final displayed partners (all filters applied)
-  const displayPartners = useMemo(() => ({
+  const displayPartners = useMemo<GeoJSON<PartnerProperties>>(() => ({
     type: "FeatureCollection",
     features: applyFilters(allPartners.features, filterOpts),
   }), [allPartners, filterOpts]);
 
-  const displayProjects = useMemo(() => {
+  const displayProjects = useMemo<GeoJSON<ProjectProperties>>(() => {
     if (!selProject) return projects;
     return { ...projects, features: projects.features.filter((f) => String(f.properties.id) === selProject) };
   }, [projects, selProject]);
 
-  // Auto-clear invalid selections when cascading removes options
-  useEffect(() => {
-    if (selZone && !availableZones.includes(selZone)) setSelZone("");
-  }, [selZone, availableZones]);
-  useEffect(() => {
-    if (selProvince && !availableProvinces.includes(selProvince)) setSelProvince("");
-  }, [selProvince, availableProvinces]);
-  useEffect(() => {
-    if (selTypes.size > 0) {
-      const validTypes = new Set(availableTypes.map((t) => t.value));
-      const newTypes = new Set([...selTypes].filter((t) => validTypes.has(t)));
-      if (newTypes.size < selTypes.size && newTypes.size > 0) setSelTypes(newTypes);
+  const filteredNearbyPartners = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return nearbyPartners.filter((partner) => (
+      selTypes.has(partner.entity_type)
+      && (!query || partner.name.toLowerCase().includes(query))
+    ));
+  }, [nearbyPartners, searchQuery, selTypes]);
+
+  const nearbyTypeCounts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const counts = Object.fromEntries(ALL_TYPES.map((type) => [type, 0])) as Record<EntityType, number>;
+    nearbyPartners.forEach((partner) => {
+      if (!query || partner.name.toLowerCase().includes(query)) {
+        counts[partner.entity_type] = (counts[partner.entity_type] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [nearbyPartners, searchQuery]);
+
+  // Keep the rendered project layer unchanged, but focus the camera only on
+  // partner coordinates inside the selected province/district. Including every
+  // project here would expand the bounds nationwide and cancel the area zoom.
+  const geographicFocusCoordinates = useMemo<[number, number][] | null>(() => {
+    if (selProject || (!selProvince && !selZone)) return null;
+
+    return allPartners.features
+      .filter((feature) => (
+        (!selProvince || feature.properties.province === selProvince)
+        && (!selZone || feature.properties.admin_zone === selZone)
+      ))
+      .map((feature) => feature.geometry.coordinates);
+  }, [allPartners, selProject, selProvince, selZone]);
+
+  // Nearby results are returned separately from the filtered partner dataset.
+  // Only add results that are not already present in the main marker layer.
+  const nearbyPartnersOnMap = useMemo(() => {
+    const visiblePartnerIds = new Set(displayPartners.features.map((feature) => feature.properties.id));
+    return filteredNearbyPartners.filter((partner) => !visiblePartnerIds.has(partner.id));
+  }, [displayPartners, filteredNearbyPartners]);
+
+  const handleSelect = useCallback(async (props: MapProperties, coords?: [number, number]) => {
+    detailRequestRef.current?.abort();
+    const selected = coords ? { ...props, _lat: coords[1], _lng: coords[0] } : props;
+    const isProjectSelection = isProjectProperties(selected);
+
+    setSelectedItem(selected);
+    setSelectedId(selected.id || null);
+    setDetailError("");
+
+    if (!isProjectSelection) {
+      if (!selProject) {
+        setLinkedPartners([]);
+        setNearbyPartners([]);
+      }
+      setDetailLoading(false);
+      return;
     }
-  }, [selTypes, availableTypes]);
 
-  const toggleType = (type: string) => {
-    setSelTypes((prev) => { const n = new Set(prev); n.has(type) ? n.delete(type) : n.add(type); return n; });
-  };
-
-  // Auto-open detail panel when project is selected from filter
-  useEffect(() => {
-    if (selProject) {
-      const proj = projects.features.find((f) => String(f.properties.id) === selProject);
-      if (proj) handleSelect(proj.properties);
-    } else {
-      // Clear panel when project filter is cleared
-      if (selectedItem?.isProject) { setSelectedItem(null); setSelectedId(null); }
-    }
-  }, [selProject, projects]);
-
-  const handleSelect = useCallback(async (props: Record<string, any>, coords?: [number, number]) => {
-    setSelectedItem(props);
-    setSelectedId(props.id || null);
+    // Clicking a project pin and choosing it from the dropdown must enter the
+    // same project context so the sidebar, search, counters, and map agree.
+    setSelProject(String(selected.id));
+    setSelProvince("");
+    setSelZone("");
+    setSearchQuery("");
+    setProjectListMode("linked");
     setLinkedPartners([]);
     setNearbyPartners([]);
-    if (coords) {
-      setSelectedItem({ ...props, _lat: coords[1], _lng: coords[0] });
+
+    const controller = new AbortController();
+    detailRequestRef.current = controller;
+    setDetailLoading(true);
+    const lat = coords ? coords[1] : selected.lat;
+    const lng = coords ? coords[0] : selected.lng;
+
+    try {
+      const [projectResponse, nearbyResponse] = await Promise.all([
+        fetch(`/api/projects?id=${selected.id}`, { signal: controller.signal }),
+        fetch(`/api/nearby?lat=${lat}&lng=${lng}&radius=10&excludeProjectId=${selected.id}`, { signal: controller.signal }),
+      ]);
+      const [projectData, nearbyData] = await Promise.all([
+        readJson<GeoJSON<ProjectProperties> & { linkedPartners: LinkedPartner[] }>(projectResponse),
+        readJson<{ partners: NearbyPartner[] }>(nearbyResponse),
+      ]);
+      if (detailRequestRef.current === controller) {
+        setLinkedPartners(projectData.linkedPartners ?? []);
+        setNearbyPartners(nearbyData.partners ?? []);
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof DOMException && error.name === "AbortError") && detailRequestRef.current === controller) {
+        setDetailError("โหลดรายละเอียดโครงการไม่สำเร็จ");
+      }
+    } finally {
+      if (detailRequestRef.current === controller) {
+        setDetailLoading(false);
+      }
     }
-    if (props.isProject && props.id) {
-      const lat = coords ? coords[1] : (props as any).lat;
-      const lng = coords ? coords[0] : (props as any).lng;
-      try {
-        const [projRes, nearbyRes] = await Promise.all([
-          fetch(`/api/projects?id=${props.id}`),
-          fetch(`/api/nearby?lat=${lat}&lng=${lng}&radius=10&excludeProjectId=${props.id}`),
-        ]);
-        const projData = await projRes.json();
-        if (projData.linkedPartners) setLinkedPartners(projData.linkedPartners);
-        const nearbyData = await nearbyRes.json();
-        if (nearbyData.partners) setNearbyPartners(nearbyData.partners);
-      } catch {}
-    }
-  }, []);
+  }, [selProject]);
 
-  const hasFilter = !!selZone || !!selProvince || !!selProject || !!searchQuery || selTypes.size < ALL_TYPES.length;
-  const resetAll = () => { setSelZone(""); setSelProvince(""); setSelProject(""); setSearchQuery(""); setSelTypes(new Set(ALL_TYPES)); };
-
-  const activeChips: { label: string; onClear: () => void }[] = [];
-  if (selProject) {
-    const p = projects.features.find((f) => String(f.properties.id) === selProject);
-    if (p) activeChips.push({ label: p.properties.name as string, onClear: () => setSelProject("") });
-  }
-  if (selProvince) activeChips.push({ label: selProvince, onClear: () => setSelProvince("") });
-  if (selZone) activeChips.push({ label: selZone, onClear: () => setSelZone("") });
-
-  const exportCSV = () => {
-    const rows = displayPartners.features.map((f) => {
-      const p = f.properties;
-      return [p.name, TYPE_LABELS[p.entity_type] || p.entity_type, p.admin_zone, p.province, p.phone, p.email].map((v) => `"${(v as string) || ""}"`).join(",");
+  const toggleType = (type: EntityType) => {
+    setSelTypes((previous) => {
+      const next = new Set(previous);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
     });
-    const csv = ["\uFEFFชื่อ,ประเภท,เขต,จังหวัด,โทร,Email", ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "partners_export.csv"; a.click(); URL.revokeObjectURL(url);
   };
 
-  const projectList = projects.features.map((f) => ({ id: f.properties.id, name: f.properties.name }));
+  const handleProjectChange = (projectId: string) => {
+    setSelProject(projectId);
+    setSearchQuery("");
+    setSelProvince("");
+    setSelZone("");
+    setProjectListMode("linked");
+    if (!projectId) {
+      detailRequestRef.current?.abort();
+      setSelectedItem(null);
+      setSelectedId(null);
+      setLinkedPartners([]);
+      setNearbyPartners([]);
+      setDetailLoading(false);
+      setDetailError("");
+      return;
+    }
+    const project = projects.features.find((feature) => String(feature.properties.id) === projectId);
+    if (project) void handleSelect(project.properties, project.geometry.coordinates);
+  };
+
+  const retryLoad = () => {
+    setLoadError("");
+    setLoading(true);
+    setLoadAttempt((attempt) => attempt + 1);
+  };
+
+  const hasFilter = !!selZone || !!selProvince || !!selProject || !!searchQuery || selTypes.size < ALL_TYPES.length;
+  const resetAll = () => {
+    detailRequestRef.current?.abort();
+    setSelZone("");
+    setSelProvince("");
+    setSelProject("");
+    setSearchQuery("");
+    setSelTypes(new Set(ALL_TYPES));
+    setProjectListMode("linked");
+    setSelectedItem(null);
+    setSelectedId(null);
+    setLinkedPartners([]);
+    setNearbyPartners([]);
+    setDetailError("");
+    setDetailLoading(false);
+  };
+
+  const closeDetail = () => {
+    const closingProject = selectedItem ? isProjectProperties(selectedItem) : false;
+    detailRequestRef.current?.abort();
+    setSelectedItem(null);
+    setSelectedId(null);
+    setDetailError("");
+    setDetailLoading(false);
+    if (closingProject && selProject) {
+      setSelProject("");
+      setLinkedPartners([]);
+      setNearbyPartners([]);
+    }
+  };
+
+  const activeChips: { label: string; kind: "province" | "zone" }[] = [];
+  if (selProvince) activeChips.push({ label: selProvince, kind: "province" });
+  if (selZone) activeChips.push({ label: selZone, kind: "zone" });
+
+  const contextProject = selProject
+    ? projects.features.find((feature) => String(feature.properties.id) === selProject)
+    : undefined;
+
+  const projectPartnerCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    allPartners.features.forEach((feature) => {
+      const projectId = feature.properties.project_id;
+      if (projectId) counts[projectId] = (counts[projectId] || 0) + 1;
+    });
+    return counts;
+  }, [allPartners]);
+
+  const projectList = projects.features.map((feature) => ({
+    id: feature.properties.id,
+    name: feature.properties.name,
+    partnerCount: projectPartnerCounts[feature.properties.id] || 0,
+  }));
+
+  const isProjectMode = Boolean(selProject);
+  const visibleTypeCounts = isProjectMode && projectListMode === "nearby" ? nearbyTypeCounts : availableTypeCounts;
+  const visibleListCount = isProjectMode && projectListMode === "nearby"
+    ? filteredNearbyPartners.length
+    : displayPartners.features.length;
+  const searchPlaceholder = isProjectMode
+    ? projectListMode === "nearby"
+      ? "ค้นหาในพาร์ทเนอร์ใกล้เคียง..."
+      : "ค้นหาในพาร์ทเนอร์ที่ผูกไว้..."
+    : "ค้นหาชื่อพาร์ทเนอร์...";
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className="app-shell h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b border-gray-200 px-4 py-2.5 flex items-center gap-4 shrink-0 bg-white">
-        <div className="flex flex-col leading-tight shrink-0">
-          <img src="/assetwise-logo.png" alt="AssetWise" className="h-5 w-auto" />
-          <span className="text-[10px] text-gray-400 mt-1.5">แผนที่พาร์ทเนอร์</span>
+      <header className="app-header relative border-b px-3 md:px-4 py-2.5 flex items-center gap-2 md:gap-4 shrink-0">
+        <button
+          type="button"
+          onClick={() => setShowSidebar((visible) => !visible)}
+          className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg border border-[#DDE4EA] text-[#0C2A44] bg-white hover:bg-[#EAF4FD]"
+          aria-label={showSidebar ? "ซ่อนตัวกรอง" : "แสดงตัวกรอง"}
+          aria-expanded={showSidebar}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+        </button>
+        <div className="flex max-w-[96px] shrink-0 flex-col leading-tight sm:max-w-none">
+          <Image src="/assetwise-logo.png" alt="AssetWise" width={160} height={40} priority className="h-4 w-auto sm:h-5" />
+          <span className="mt-1.5 hidden text-[10px] text-[#6B7280] sm:block">แผนที่พาร์ทเนอร์</span>
         </div>
-        <div className="mx-auto flex items-center gap-2 bg-gray-50 rounded-2xl px-4 h-10 w-full max-w-sm border border-gray-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition">
-          <Search className="w-4 h-4 text-gray-400 shrink-0" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ค้นหาชื่อพาร์ทเนอร์..." className="border-none bg-transparent outline-none text-sm flex-1 text-gray-700 placeholder-gray-400" />
-          {searchQuery && <button onClick={() => setSearchQuery("")} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>}
+        <div className="app-search mx-auto flex min-w-0 flex-1 items-center gap-2 rounded-2xl px-3 md:px-4 h-10 w-full max-w-sm border transition lg:absolute lg:left-1/2 lg:-translate-x-1/2">
+          <Search className="w-4 h-4 text-[#6B7280] shrink-0" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={searchPlaceholder} aria-label={searchPlaceholder} className="min-w-0 border-none bg-transparent outline-none text-sm flex-1 text-[#1F2937] placeholder-[#8793A0]" />
+          {searchQuery && <button type="button" onClick={() => setSearchQuery("")} aria-label="ล้างคำค้นหา" className="text-[#6B7280] hover:text-[#0C2A44]"><X className="w-4 h-4" /></button>}
         </div>
         {loading ? (
-          <span className="inline-block w-4 h-4 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin shrink-0 ml-auto" />
+          <span className="inline-block w-4 h-4 border-2 border-[#DDE4EA] border-t-[#2F7FBE] rounded-full animate-spin shrink-0 ml-auto" />
         ) : (
-          <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <span className="text-xs px-2.5 py-1 rounded-md font-medium" style={{ background: "#378ADD", color: "white" }}>{displayPartners.features.length} พาร์ทเนอร์</span>
-            <span className="text-xs px-2.5 py-1 rounded-md font-medium" style={{ background: NAVY, color: "white" }}>{displayProjects.features.length} โครงการ</span>
+          <div className="hidden sm:flex items-center gap-2 shrink-0 ml-auto">
+            {isProjectMode ? (
+              <>
+                <span className="text-xs px-2.5 py-1 rounded-md font-medium border" style={{ background: "#EDF2F5", color: NAVY, borderColor: "#D9E2E8" }}>
+                  พาร์ทเนอร์โครงการ {detailLoading ? "…" : linkedPartners.length}
+                </span>
+                <span className="text-xs px-2.5 py-1 rounded-md font-medium border" style={{ background: "#EAF4FD", color: "#23699F", borderColor: "#CFE5F7" }}>
+                  ใกล้ 10 กม. {detailLoading ? "…" : nearbyPartners.length}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-xs px-2.5 py-1 rounded-md font-medium border" style={{ background: "#EAF4FD", color: "#23699F", borderColor: "#CFE5F7" }}>{displayPartners.features.length} พาร์ทเนอร์</span>
+                <span className="text-xs px-2.5 py-1 rounded-md font-medium border" style={{ background: "#EDF2F5", color: NAVY, borderColor: "#D9E2E8" }}>{displayProjects.features.length} โครงการ</span>
+              </>
+            )}
           </div>
         )}
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {showSidebar && (
+          <button
+            type="button"
+            aria-label="ปิดตัวกรอง"
+            onClick={() => setShowSidebar(false)}
+            className="absolute inset-0 z-[650] bg-[#0C2A44]/25 backdrop-blur-[1px] md:hidden"
+          />
+        )}
         {/* Sidebar */}
-        <aside className="w-72 border-r border-gray-200 flex flex-col shrink-0 bg-white">
+        <aside className={`${showSidebar ? "flex" : "hidden md:flex"} app-sidebar w-72 max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-[700] border-r flex-col shrink-0 shadow-sm md:shadow-none`}>
+          <div className="flex items-center justify-between border-b border-[#E8EDF1] px-4 py-2.5 md:hidden">
+            <span className="text-sm font-semibold text-[#0C2A44]">ตัวกรองและรายชื่อ</span>
+            <button type="button" onClick={() => setShowSidebar(false)} aria-label="ปิดตัวกรอง" className="grid h-7 w-7 place-items-center rounded-md text-[#6B7280] hover:bg-[#EAF4FD] hover:text-[#0C2A44]">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {loadError && (
+            <div className="m-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700" role="alert">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{loadError}</span>
+              </div>
+              <button type="button" onClick={retryLoad} className="mt-2 inline-flex items-center gap-1 font-medium underline">
+                <RefreshCw className="h-3 w-3" /> ลองใหม่
+              </button>
+            </div>
+          )}
           {/* Active chips */}
           {activeChips.length > 0 && (
             <div className="px-4 pt-2.5 pb-1 flex flex-wrap gap-1.5">
               {activeChips.map((chip, i) => (
-                <span key={i} className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border" style={{ background: "#ebf5ff", color: "#378ADD", borderColor: "#bfdbfe" }}>
-                  {chip.label}<button onClick={chip.onClear} className="hover:text-blue-800"><X className="w-3 h-3" /></button>
+                <span key={i} className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border" style={{ background: "#EAF4FD", color: "#23699F", borderColor: "#CFE5F7" }}>
+                  {chip.label}<button
+                    type="button"
+                    onClick={() => {
+                      if (chip.kind === "province") setSelProvince("");
+                      else setSelZone("");
+                    }}
+                    aria-label={`ล้างตัวกรอง ${chip.label}`}
+                    className="hover:text-[#0C2A44]"
+                  ><X className="w-3 h-3" /></button>
                 </span>
               ))}
               <button onClick={resetAll} className="text-[11px] text-red-400 hover:text-red-600 px-1">ล้าง</button>
@@ -220,35 +469,70 @@ export default function Home() {
           )}
 
           {/* Filters */}
-          <div className="px-3 py-2.5 space-y-2 border-b border-gray-100">
-            <select value={selProject} onChange={(e) => setSelProject(e.target.value)} className="w-full max-w-full text-[12px] border border-gray-200 rounded-lg px-2 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none truncate">
-              <option value="">โครงการ: ทั้งหมด</option>
-              {projectList.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <div className="grid grid-cols-2 gap-1.5">
-              <select value={selProvince} onChange={(e) => setSelProvince(e.target.value)} className="w-full min-w-0 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
-                <option value="">จังหวัด</option>
-                {availableProvinces.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <select value={selZone} onChange={(e) => setSelZone(e.target.value)} className="w-full min-w-0 text-[11px] border border-gray-200 rounded-lg px-1.5 py-1.5 bg-gray-50 focus:bg-white focus:border-blue-400 outline-none">
-                <option value="">เขต/อำเภอ</option>
-                {availableZones.map((z) => <option key={z} value={z}>{z}</option>)}
-              </select>
+          <div className="px-3 py-2.5 space-y-2 border-b border-[#E8EDF1]">
+            <div className="flex items-center justify-between px-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">ตัวกรอง</p>
+              {hasFilter && <button type="button" onClick={resetAll} className="text-[11px] text-[#2F7FBE] hover:text-[#0C2A44]">ล้างทั้งหมด</button>}
             </div>
+            <select value={selProject} onChange={(e) => handleProjectChange(e.target.value)} aria-label="กรองตามโครงการ" className="filter-select w-full max-w-full text-[12px] text-[#1F2937] border rounded-lg px-2 py-1.5 outline-none truncate">
+              <option value="">โครงการ: ทั้งหมด</option>
+              {projectList.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.partnerCount})</option>)}
+            </select>
+            {!isProjectMode && (
+              <div className="grid grid-cols-2 gap-1.5">
+                <select value={selProvince} onChange={(e) => setSelProvince(e.target.value)} aria-label="กรองตามจังหวัด" className="filter-select w-full min-w-0 text-[11px] text-[#1F2937] border rounded-lg px-1.5 py-1.5 outline-none">
+                  <option value="">จังหวัด</option>
+                  {provinceOptions.map((p) => <option key={p} value={p}>{p}{p === selProvince && !availableProvinces.includes(p) ? " (0)" : ""}</option>)}
+                </select>
+                <select value={selZone} onChange={(e) => setSelZone(e.target.value)} aria-label="กรองตามเขตหรืออำเภอ" className="filter-select w-full min-w-0 text-[11px] text-[#1F2937] border rounded-lg px-1.5 py-1.5 outline-none">
+                  <option value="">เขต/อำเภอ</option>
+                  {zoneOptions.map((z) => <option key={z} value={z}>{z}{z === selZone && !availableZones.includes(z) ? " (0)" : ""}</option>)}
+                </select>
+              </div>
+            )}
+            {isProjectMode && (
+              <div className="-mx-1 grid grid-cols-[38%_62%] rounded-lg bg-[#EDF2F5] p-1" role="tablist" aria-label="กลุ่มพาร์ทเนอร์ของโครงการ">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={projectListMode === "linked"}
+                  onClick={() => { setProjectListMode("linked"); setSearchQuery(""); }}
+                  className={`whitespace-nowrap rounded-md px-1 py-1.5 text-[10px] font-medium tracking-[-0.01em] transition ${projectListMode === "linked" ? "bg-white text-[#0C2A44] shadow-sm" : "text-[#6B7280] hover:text-[#0C2A44]"}`}
+                >
+                  พาร์ทเนอร์โครงการ ({detailLoading ? "…" : linkedPartners.length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={projectListMode === "nearby"}
+                  onClick={() => { setProjectListMode("nearby"); setSearchQuery(""); }}
+                  className={`whitespace-nowrap rounded-md px-1 py-1.5 text-[10px] font-medium tracking-[-0.01em] transition ${projectListMode === "nearby" ? "bg-white text-[#23699F] shadow-sm" : "text-[#6B7280] hover:text-[#0C2A44]"}`}
+                >
+                  พาร์ทเนอร์ใกล้เคียง 10 กม. ({detailLoading ? "…" : nearbyPartners.length})
+                </button>
+              </div>
+            )}
             {/* Type toggle pills — cascading */}
-            <div className="flex flex-wrap gap-1.5">
-              {availableTypes.map(({ value: type, count }) => {
+            <p className="px-0.5 pt-0.5 text-[10px] font-medium text-[#8793A0]">ประเภทพาร์ทเนอร์ · เลือกได้หลายประเภท</p>
+            <div className="partner-type-grid grid grid-cols-2 gap-1.5">
+              {ALL_TYPES.filter((type) => visibleTypeCounts[type] > 0).map((type) => {
                 const isActive = selTypes.has(type);
-                const color = TYPE_COLORS[type];
+                const tint = TYPE_TINTS[type];
+                const count = visibleTypeCounts[type];
                 return (
                   <button
+                    type="button"
                     key={type}
                     onClick={() => toggleType(type)}
-                    className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md cursor-pointer transition"
-                    style={isActive ? { background: color, color: "white" } : { background: "#f3f4f6", color: "#9ca3af" }}
+                    aria-pressed={isActive}
+                    className="grid h-[30px] grid-cols-[14px_minmax(0,1fr)_auto] items-center gap-1 rounded-[7px] border px-2 py-0.5 text-left cursor-pointer transition hover:brightness-[0.98]"
+                    style={isActive ? { background: tint.background, color: tint.color, borderColor: tint.border } : { background: "#F1F3F5", color: "#8A949E", borderColor: "#E3E8EC" }}
                   >
-                    <span className="w-2 h-2 rounded-full" style={isActive ? { background: "white" } : { background: color }} />
-                    {TYPE_LABELS[type]}
+                    <span className="grid h-3.5 w-3.5 place-items-center rounded-full border border-current" aria-hidden="true">
+                      {isActive && <Check className="h-2 w-2" strokeWidth={2.5} />}
+                    </span>
+                    <span className="min-w-0 text-[10px] font-semibold leading-[1.1]">{TYPE_LABELS[type]}</span>
+                    <span className="text-[11px] font-semibold tabular-nums">{count}</span>
                   </button>
                 );
               })}
@@ -256,37 +540,64 @@ export default function Home() {
           </div>
 
           {/* Partner list header */}
-          <div className="flex items-center justify-between px-4 py-1.5 border-b border-gray-100 bg-gray-50/50">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase">รายชื่อ ({displayPartners.features.length})</span>
-            {displayPartners.features.length > 0 && (
-              <button onClick={exportCSV} className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
-                <Download className="w-3 h-3" /> Export
-              </button>
-            )}
+          <div className="list-heading px-4 py-1.5 border-b">
+            <span className="text-[11px] font-semibold text-[#6B7280] uppercase">
+              {isProjectMode ? (projectListMode === "nearby" ? "พาร์ทเนอร์ใกล้เคียง" : "พาร์ทเนอร์โครงการ") : "รายชื่อ"} ({visibleListCount})
+            </span>
           </div>
 
           {/* Partner list */}
           <div className="flex-1 overflow-y-auto">
-            {displayPartners.features.map((f, i) => {
-              const p = f.properties;
-              const isActive = selectedId === p.id;
-              const color = TYPE_COLORS[p.entity_type as string] || "#666";
+            {isProjectMode && projectListMode === "nearby" ? filteredNearbyPartners.map((partner) => {
+              const isActive = selectedId === partner.id && selectedItem && !isProjectProperties(selectedItem);
+              const color = TYPE_COLORS[partner.entity_type] || "#666";
               return (
-                <div key={i} onClick={() => handleSelect(p, f.geometry.coordinates)} className={`px-4 py-2 border-b border-gray-50 cursor-pointer transition ${isActive ? "bg-blue-50 border-l-2 border-l-blue-500" : "hover:bg-gray-50"}`}>
+                <button type="button" key={partner.id} onClick={() => { void handleSelect(nearbyToPartner(partner)); setShowSidebar(false); }} className={`block w-full text-left px-4 py-2 border-b border-[#EEF2F5] cursor-pointer transition ${isActive ? "bg-[#EAF4FD] border-l-2 border-l-[#2F7FBE]" : "hover:bg-[#F6F8FA]"}`}>
                   <div className="flex items-start gap-2">
                     <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] truncate ${isActive ? "font-medium text-gray-900" : "text-gray-700"}`}>{p.name}</p>
-                      <p className="text-[11px] text-gray-400">{TYPE_LABELS[p.entity_type as string] || p.entity_type}{p.admin_zone && ` · ${p.admin_zone}`}</p>
+                      <p className={`text-[13px] truncate ${isActive ? "font-medium text-[#0C2A44]" : "text-[#1F2937]"}`}>{partner.name}</p>
+                      <p className="text-[11px] text-[#6B7280]">{TYPE_LABELS[partner.entity_type]}{partner.admin_zone && ` · ${partner.admin_zone}`}</p>
+                    </div>
+                    <span className="flex shrink-0 items-center gap-0.5 pt-0.5 text-[10px] font-medium text-[#2F7FBE]"><MapPin className="h-3 w-3" />{partner.distance_km} กม.</span>
+                  </div>
+                </button>
+              );
+            }) : displayPartners.features.map((f) => {
+              const p = f.properties;
+              const isActive = selectedId === p.id;
+              const color = TYPE_COLORS[p.entity_type] || "#666";
+              return (
+                <button type="button" key={p.id} onClick={() => { void handleSelect(p, f.geometry.coordinates); setShowSidebar(false); }} className={`block w-full text-left px-4 py-2 border-b border-[#EEF2F5] cursor-pointer transition ${isActive ? "bg-[#EAF4FD] border-l-2 border-l-[#2F7FBE]" : "hover:bg-[#F6F8FA]"}`}>
+                  <div className="flex items-start gap-2">
+                    <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: color }} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[13px] truncate ${isActive ? "font-medium text-[#0C2A44]" : "text-[#1F2937]"}`}>{p.name}</p>
+                      <p className="text-[11px] text-[#6B7280]">{TYPE_LABELS[p.entity_type]}{p.admin_zone && ` · ${p.admin_zone}`}</p>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
-            {displayPartners.features.length === 0 && !loading && (
+            {visibleListCount === 0 && !loading && !detailLoading && (
               <div className="px-4 py-6 text-center">
-                <p className="text-[13px] text-gray-400">ไม่พบพาร์ทเนอร์</p>
-                {hasFilter && <button onClick={resetAll} className="mt-1 text-[11px] text-gray-400 hover:text-gray-600 underline">ล้างตัวกรอง</button>}
+                {isProjectMode && projectListMode === "linked" && linkedPartners.length === 0 ? (
+                  <>
+                    <Link2 className="mx-auto mb-2 h-5 w-5 text-[#9AA6B2]" />
+                    <p className="text-[13px] font-medium text-[#6B7280]">โครงการนี้ยังไม่มีพาร์ทเนอร์ที่ผูกไว้</p>
+                    {nearbyPartners.length > 0 && <button type="button" onClick={() => { setProjectListMode("nearby"); setSearchQuery(""); }} className="mt-2 text-[11px] font-medium text-[#2F7FBE] hover:text-[#0C2A44]">ดูพาร์ทเนอร์ใกล้เคียง {nearbyPartners.length} ราย</button>}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[13px] text-gray-400">ไม่พบพาร์ทเนอร์ที่ตรงกับตัวกรอง</p>
+                    {hasFilter && <button onClick={() => { setSearchQuery(""); setSelTypes(new Set(ALL_TYPES)); }} className="mt-1 text-[11px] text-gray-400 hover:text-gray-600 underline">ล้างคำค้นหาและประเภท</button>}
+                  </>
+                )}
+              </div>
+            )}
+            {detailLoading && isProjectMode && (
+              <div className="flex items-center justify-center gap-2 px-4 py-8 text-xs text-[#6B7280]">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#DDE4EA] border-t-[#2F7FBE]" /> กำลังค้นหาพาร์ทเนอร์ใกล้เคียง
               </div>
             )}
           </div>
@@ -297,12 +608,17 @@ export default function Home() {
           <MapView
             partners={displayPartners}
             projects={displayProjects}
+            nearbyPartners={nearbyPartnersOnMap}
+            focusCoordinates={geographicFocusCoordinates}
+            selectedProjectId={selProject ? Number(selProject) : null}
+            detailPanelOpen={selectedItem !== null}
             onSelect={handleSelect}
-            flyTo={selectedItem && (selectedItem as any)._lat ? { lat: (selectedItem as any)._lat, lng: (selectedItem as any)._lng } : null}
+            onSelectNearby={(partner) => void handleSelect(nearbyToPartner(partner))}
+            flyTo={selectedItem?._lat != null && selectedItem?._lng != null ? { lat: selectedItem._lat, lng: selectedItem._lng } : null}
           />
-          <div className="absolute bottom-3 left-3 bg-white/95 border border-gray-200 rounded-lg px-3 py-2 text-[12px] flex flex-nowrap gap-x-4 shadow-md z-[500] backdrop-blur-sm overflow-x-auto">
+          <div className="map-legend absolute bottom-3 left-3 border rounded-lg px-3 py-2 text-[12px] text-[#1F2937] flex flex-nowrap gap-x-4 z-[500] backdrop-blur-sm overflow-x-auto">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: NAVY, border: "2px solid #2a5277" }} /> โครงการ
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: NAVY, border: "2px solid #2F7FBE" }} /> โครงการ Assetwise
             </span>
             {ALL_TYPES.map((type) => (
               <span key={type} className="flex items-center gap-1.5">
@@ -310,7 +626,17 @@ export default function Home() {
               </span>
             ))}
           </div>
-          <DetailPanel selected={selectedItem} linkedPartners={linkedPartners} nearbyPartners={nearbyPartners} onSelectNearby={(p) => { handleSelect({ name: p.name, entity_type: p.entity_type, phone: p.phone, admin_zone: p.admin_zone, province: p.province, _lat: p.lat, _lng: p.lng }); }} onClose={() => { setSelectedItem(null); setSelectedId(null); }} />
+          <DetailPanel
+            selected={selectedItem}
+            linkedPartners={linkedPartners}
+            nearbyPartners={nearbyPartners}
+            loading={detailLoading}
+            error={detailError}
+            contextProjectName={contextProject?.properties.name}
+            onBackToProject={contextProject ? () => void handleSelect(contextProject.properties, contextProject.geometry.coordinates) : undefined}
+            onRetry={selectedItem && isProjectProperties(selectedItem) ? () => void handleSelect(selectedItem) : undefined}
+            onClose={closeDetail}
+          />
         </main>
       </div>
     </div>

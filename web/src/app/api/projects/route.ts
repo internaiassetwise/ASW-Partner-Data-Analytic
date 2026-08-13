@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     // If id specified, also return linked partners
     if (id) {
       const partners = await client.query(
-        `SELECT name, entity_type, phone, email, admin_zone
+        `SELECT id, name, entity_type, phone, email, admin_zone
          FROM partners WHERE project_id = $1 ORDER BY name`,
         [id]
       );

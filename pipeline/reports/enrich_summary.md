@@ -1,15 +1,15 @@
 # Phase 4 — Enrich Summary (Gate 4)
 
-Total rows: 975
+Total rows: 974
 Reverse geocode (projects): 0 new, 36 cached, 0 fail
-Reverse geocode (fill gaps): 5 new, 107 cached, 0 fail
+Reverse geocode (fill gaps): 0 new, 112 cached, 0 fail
 
 ## Zone coverage per entity_type
 
 | entity_type | rows | admin_zone | province |
 |---|---|---|---|
 | bank | 9 | 9 | 9 |
-| external_org | 62 | 62 | 62 |
+| external_org | 61 | 61 | 61 |
 | gov_bkk | 437 | 428 | 437 |
 | gov_district | 67 | 67 | 67 |
 | partner | 106 | 105 | 106 |
@@ -38,7 +38,7 @@ Reverse geocode (fill gaps): 5 new, 107 cached, 0 fail
 ## Top province distribution
 
 - 802: กรุงเทพมหานคร
-- 76: ปทุมธานี
+- 75: ปทุมธานี
 - 36: สมุทรปราการ
 - 21: นนทบุรี
 - 13: ชลบุรี

@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f8fa;
+  --foreground: #1f2937;
+  --aw-brand: #0c2a44;
+  --aw-primary: #2f7fbe;
+  --aw-soft-blue: #eaf4fd;
+  --aw-surface: #ffffff;
+  --aw-border: #dde4ea;
+  --aw-muted: #6b7280;
+  --aw-warm: #c97a45;
+  --aw-warm-soft: #f3e4d7;
+  --aw-cluster-small: #e7eef4;
+  --aw-cluster-small-text: #334e68;
+  --aw-cluster-medium: #7f9db5;
+  --aw-cluster-large: #35556e;
 }
 
 @theme inline {
@@ -12,15 +24,193 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Tahoma, Arial, sans-serif;
+}
+
+.app-shell {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.app-header,
+.app-sidebar,
+.map-legend {
+  background: var(--aw-surface);
+  border-color: var(--aw-border);
+}
+
+.app-search,
+.filter-select,
+.list-heading {
+  background: var(--background);
+  border-color: var(--aw-border);
+}
+
+.app-search:focus-within,
+.filter-select:focus {
+  border-color: var(--aw-primary);
+  box-shadow: 0 0 0 3px rgb(47 127 190 / 12%);
+}
+
+.map-legend {
+  box-shadow: 0 4px 16px rgb(12 42 68 / 12%);
+}
+
+.map-reset-control {
+  padding: 7px 11px;
+  color: var(--aw-brand);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgb(255 255 255 / 96%);
+  border: 1px solid var(--aw-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgb(12 42 68 / 14%);
+  backdrop-filter: blur(6px);
+}
+
+.map-reset-control:hover {
+  background: var(--aw-soft-blue);
+  border-color: #bfd8ea;
+}
+
+.leaflet-control-zoom.leaflet-bar {
+  overflow: hidden;
+  border: 1px solid var(--aw-border) !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgb(12 42 68 / 14%);
+}
+
+.leaflet-control-zoom.leaflet-bar a {
+  color: var(--aw-brand);
+  background: rgb(255 255 255 / 96%);
+  border-color: var(--aw-border);
+}
+
+.leaflet-control-zoom.leaflet-bar a:hover {
+  color: var(--aw-primary);
+  background: var(--aw-soft-blue);
+}
+
+.leaflet-tile-pane {
+  filter: saturate(0.72) brightness(1.03) contrast(0.94);
+}
+
+/* Partner marker: dot + name label share one icon box, but only the dot may
+   catch the pointer — the wide label box would otherwise swallow clicks meant
+   for neighbouring markers. */
+.partner-marker {
+  pointer-events: none;
+}
+.partner-marker .partner-dot {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.nearby-partner-marker {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  background: var(--nearby-marker-color, #66717e);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px rgb(12 42 68 / 22%),
+    0 3px 8px rgb(12 42 68 / 28%);
+}
+
+/* AssetWise project marker — 34px teardrop divIcon with a Tabler building. */
+.project-marker {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  color: #ffffff;
+  cursor: pointer;
+  filter: drop-shadow(0 3px 5px rgb(12 42 68 / 35%));
+}
+
+.project-marker::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #0c2a44;
+}
+
+.project-marker::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  border-top: 12px solid #0c2a44;
+  border-right: 7px solid transparent;
+  border-left: 7px solid transparent;
+}
+
+.project-marker .ti {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  left: 7px;
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.project-label {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: rgb(12 42 68 / 92%);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+}
+
+/* Partner clusters — Blue Slate stays on-brand without matching project pins. */
+.cluster-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgb(255 255 255 / 90%);
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 3px 8px rgb(12 42 68 / 24%);
+}
+
+.cluster-small {
+  width: 34px;
+  height: 34px;
+  background: var(--aw-cluster-small);
+  color: var(--aw-cluster-small-text);
+}
+
+.cluster-medium {
+  width: 44px;
+  height: 44px;
+  background: var(--aw-cluster-medium);
+  color: #ffffff;
+}
+
+.cluster-large {
+  width: 56px;
+  height: 56px;
+  background: var(--aw-cluster-large);
+  color: #ffffff;
 }

@@ -1,6 +1,6 @@
 # Phase 1 — Clean Summary (Gate 1)
 
-Total rows: **975**
+Total rows: **974**
 
 
 ## Rows per entity_type
@@ -10,7 +10,7 @@ Total rows: **975**
 - `partner`: 106
 - `sponsor`: 91
 - `gov_district`: 67
-- `external_org`: 62
+- `external_org`: 61
 - `project`: 36
 - `bank`: 9
 
@@ -22,18 +22,18 @@ Total rows: **975**
 - `B2B` / `Sponsper`: 91
 - `B2B` / `กลุ่มข้าราชการ กทม.`: 437
 - `B2B` / `สำนักงานเขต`: 67
-- `B2B` / `องค์กร ภายนอก`: 62
+- `B2B` / `องค์กร ภายนอก`: 61
 - `PROJECTS` / `Sheet1`: 36
 
 ## Geocode status before Phase 3
 
 - already have lat/lng (projects): **36**
-- need geocoding: **939**
+- need geocoding: **938**
 
 ## project_zone fill rate per entity_type
 
 - `bank`: 0/9
-- `external_org`: 0/62
+- `external_org`: 0/61
 - `gov_bkk`: 0/437
 - `gov_district`: 0/67
 - `partner`: 0/106
@@ -46,7 +46,7 @@ Total rows: **975**
 - `partner`: 106/106 have address
 - `sponsor`: 90/91 have address
 - `bank`: 9/9 have address
-- `external_org`: 61/62 have address
+- `external_org`: 60/61 have address
 - `partner_2026`: 167/167 have address
 - `gov_bkk`: 437/437 have address
 - `gov_district`: 67/67 have address
@@ -54,9 +54,14 @@ Total rows: **975**
 
 ## Duplicate external_id check
 
-- **2 rows share ids** — review
-  - a1b964366dbe1f0b | external_org | บริษัท ไพร์ม แพ็คเกจจิ้ง จำกัด
-  - a1b964366dbe1f0b | external_org | บริษัท ไพร์ม แพ็คเกจจิ้ง จำกัด
+- no duplicates in output
+
+### Duplicate rows dropped (same id, same content): 1
+
+- `a1b964366dbe1f0b` บริษัท ไพร์ม แพ็คเกจจิ้ง จำกัด — kept องค์กร ภายนอก:11, dropped องค์กร ภายนอก:16
+
+### Colliding ids suffixed (same id, different content): 0
+
 
 ## Sample rows (first 2 per entity_type)
 

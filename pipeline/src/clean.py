@@ -25,6 +25,9 @@ import pandas as pd
 from config import B2B_FILE, PROJECTS_FILE, CLEAN_DIR, REPORTS_DIR
 
 STRIP_CHARS = re.compile(r"[\s\-\[\]()/.,:;+'\"!?]+")
+# Thai vowels and tone marks are combining characters and should never repeat
+# consecutively. Collapse source typos such as รังสิิต, ลาดพร้้าว, and หมูู่.
+DUPLICATE_THAI_MARKS = re.compile(r"([\u0E31\u0E34-\u0E3A\u0E47-\u0E4E])\1")
 
 UNIFIED_FIELDS = [
     "external_id", "entity_type", "name", "email", "phone", "contact_name",
@@ -124,7 +127,8 @@ def norm(v):
     if v is None:
         return ""
     s = str(v).strip()
-    return re.sub(r"\s+", " ", s)
+    s = re.sub(r"\s+", " ", s)
+    return DUPLICATE_THAI_MARKS.sub(r"\1", s)
 
 
 def parse_int(v):
@@ -182,6 +186,58 @@ def make_external_id(row):
 
 def empty_row():
     return {f: "" for f in UNIFIED_FIELDS}
+
+
+# Fields that decide whether two rows sharing an external_id are the SAME
+# entity. Provenance (which sheet/row it came from) and leftover text are
+# excluded — the source lists some companies twice with only the running
+# number differing.
+COMPARE_FIELDS = [
+    f for f in UNIFIED_FIELDS
+    if f not in {"external_id", "notes", "raw_data",
+                 "source_file", "source_sheet", "source_row"}
+]
+
+
+def resolve_id_collisions(rows):
+    """external_id is a content hash, so a company listed twice in the source
+    collides. Left alone, Phase 5's UPSERT silently overwrites one row with the
+    other and the counts stop adding up.
+
+      - identical content  -> real duplicate, keep the first, drop the rest
+      - different content  -> different entities that happen to hash alike,
+                              keep both and suffix the id so it stays unique
+
+    Returns (kept_rows, dropped, suffixed) where the last two are report data.
+    """
+    first = {}          # external_id -> first row seen
+    n_seen = {}         # external_id -> how many rows carried it
+    kept, dropped, suffixed = [], [], []
+    for rec in rows:
+        eid = rec["external_id"]
+        if eid not in first:
+            first[eid] = rec
+            n_seen[eid] = 1
+            kept.append(rec)
+            continue
+        prev = first[eid]
+        if all(rec[f] == prev[f] for f in COMPARE_FIELDS):
+            dropped.append({
+                "external_id": eid, "name": rec["name"],
+                "kept": f"{prev['source_sheet']}:{prev['source_row']}",
+                "dropped": f"{rec['source_sheet']}:{rec['source_row']}",
+            })
+            continue
+        n_seen[eid] += 1
+        new_id = f"{eid}-{n_seen[eid]}"
+        suffixed.append({
+            "external_id": new_id, "name": rec["name"],
+            "collided_with": eid,
+            "source": f"{rec['source_sheet']}:{rec['source_row']}",
+        })
+        rec["external_id"] = new_id
+        kept.append(rec)
+    return kept, dropped, suffixed
 
 
 def load_matrix(ws):
@@ -338,6 +394,12 @@ def main():
     print(f"  PROJECTS/Sheet1: kept {len(rows)} (lat/lng from file)")
     wb.close()
 
+    all_rows, dropped_dups, suffixed_ids = resolve_id_collisions(all_rows)
+    if dropped_dups:
+        print(f"  dropped {len(dropped_dups)} duplicate row(s) (same content, same id)")
+    if suffixed_ids:
+        print(f"  suffixed {len(suffixed_ids)} colliding id(s) (different content)")
+
     df = pd.DataFrame(all_rows, columns=UNIFIED_FIELDS)
     out = CLEAN_DIR / "partners_clean.csv"
     df.to_csv(out, index=False, encoding="utf-8-sig")
@@ -377,11 +439,19 @@ def main():
     lines.append("\n## Duplicate external_id check\n")
     dups = df[df["external_id"].duplicated(keep=False)]
     if len(dups) == 0:
-        lines.append("- no duplicates")
+        lines.append("- no duplicates in output")
     else:
         lines.append(f"- **{len(dups)} rows share ids** — review")
         for _, r in dups.head(10).iterrows():
             lines.append(f"  - {r['external_id']} | {r['entity_type']} | {r['name'][:40]}")
+
+    lines.append(f"\n### Duplicate rows dropped (same id, same content): {len(dropped_dups)}\n")
+    for d in dropped_dups:
+        lines.append(f"- `{d['external_id']}` {d['name'][:40]} — kept {d['kept']}, dropped {d['dropped']}")
+
+    lines.append(f"\n### Colliding ids suffixed (same id, different content): {len(suffixed_ids)}\n")
+    for s in suffixed_ids:
+        lines.append(f"- `{s['collided_with']}` -> `{s['external_id']}` {s['name'][:40]} ({s['source']})")
 
     lines.append("\n## Sample rows (first 2 per entity_type)\n")
     for et in df["entity_type"].unique():

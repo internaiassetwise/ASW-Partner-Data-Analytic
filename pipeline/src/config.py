@@ -11,7 +11,7 @@ LOGS_DIR = ROOT / "logs"
 REPORTS_DIR = ROOT / "reports"
 MANUAL_REVIEW_DIR = ROOT / "manual_review"
 
-SOURCE_DIR = ROOT.parent
+SOURCE_DIR = DATA_DIR / "source"
 
 B2B_FILE = SOURCE_DIR / "ฐานข้อมูลรายชื่อ B2B.xlsx"
 PROJECTS_FILE = SOURCE_DIR / "ที่ตั้ง 36 โครงการของ AssetWise.xlsx"

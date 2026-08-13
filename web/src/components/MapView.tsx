@@ -1,113 +1,194 @@
 "use client";
 
-import { MapContainer, TileLayer, CircleMarker, Marker, Popup, Tooltip, useMap, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, ZoomControl } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import L from "leaflet";
-
-const TYPE_COLORS: Record<string, string> = {
-  partner: "#378ADD", sponsor: "#D85A30", bank: "#1D9E75",
-  external_org: "#F59E0B", partner_2026: "#06B6D4",
-  gov_bkk: "#9CA3AF", gov_district: "#6B7280",
-};
+import type { GeoFeature, GeoJSON, MapProperties, NearbyPartner, PartnerProperties, ProjectProperties } from "@/lib/types";
+import { ENTITY_COLORS as TYPE_COLORS } from "@/lib/entityStyles";
 const TYPE_LABELS: Record<string, string> = {
   partner: "พาร์ทเนอร์", sponsor: "สปอนเซอร์", bank: "ธนาคาร",
   external_org: "องค์กรภายนอก", partner_2026: "พาร์ทเนอร์ 2026",
   gov_bkk: "โรงเรียน/สถาบัน", gov_district: "สำนักงานเขต กทม.",
 };
-const NAVY = "#1e3a5f";
+const PROJECT_COLOR = "#0C2A44";
+const BANGKOK_METRO_CENTER: L.LatLngExpression = [13.78, 100.5];
+const BANGKOK_METRO_ZOOM = 10;
 
-interface Feature {
-  geometry: { coordinates: [number, number] };
-  properties: Record<string, any>;
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[character] ?? character);
 }
 
-function FitBounds({ features }: { features: Feature[] }) {
+// Re-fits only when the visible extent actually changes. `features` is a new
+// array on every render, so depending on it directly would re-fit after any
+// state update (e.g. the /api/nearby response) and undo an in-flight flyTo.
+function FitBounds({ coordinates, detailPanelOpen }: { coordinates: [number, number][]; detailPanelOpen: boolean }) {
   const map = useMap();
+  const lats = coordinates.map((coordinate) => coordinate[1]);
+  const lngs = coordinates.map((coordinate) => coordinate[0]);
+  const key = coordinates.length
+    ? [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)].join(",")
+    : "";
   useEffect(() => {
-    if (features.length === 0) return;
-    const lats = features.map((f) => f.geometry.coordinates[1]);
-    const lngs = features.map((f) => f.geometry.coordinates[0]);
-    map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [40, 40] });
-  }, [features, map]);
+    if (!key) return;
+    const [south, west, north, east] = key.split(",").map(Number);
+    const coversNationalExtent = north - south > 2 || east - west > 2;
+    if (coversNationalExtent) {
+      map.setView(BANGKOK_METRO_CENTER, BANGKOK_METRO_ZOOM);
+      return;
+    }
+
+    map.fitBounds([[south, west], [north, east]], {
+      paddingTopLeft: [32, 32],
+      paddingBottomRight: [detailPanelOpen ? 360 : 32, 32],
+      maxZoom: 14,
+    });
+  }, [detailPanelOpen, key, map]);
   return null;
 }
 
-function FlyTo({ lat, lng }: { lat: number; lng: number }) {
+function FlyTo({ lat, lng, detailPanelOpen }: { lat: number; lng: number; detailPanelOpen: boolean }) {
   const map = useMap();
   useEffect(() => {
     map.flyTo([lat, lng], 15, { duration: 0.8 });
-  }, [lat, lng, map]);
+    if (!detailPanelOpen) return;
+    const makeRoomForPanel = () => map.panBy([160, 0], { animate: true, duration: 0.25 });
+    map.once("moveend", makeRoomForPanel);
+    return () => { map.off("moveend", makeRoomForPanel); };
+  }, [detailPanelOpen, lat, lng, map]);
   return null;
 }
 
-// Create label icon for partners (small gray text)
-function makeLabelIcon(text: string) {
-  const truncated = text.length > 25 ? text.substring(0, 25) + "..." : text;
+// Dot AND label in ONE icon. MarkerClusterGroup clusters every child layer
+// that exposes getLatLng() — a CircleMarker plus a separate label Marker made
+// each partner count twice in the cluster badge.
+function makePartnerIcon(text: string, color: string) {
+  const truncated = escapeHtml(text.length > 25 ? text.substring(0, 25) + "..." : text);
+  const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : "#666666";
   return L.divIcon({
-    className: "",
-    html: `<div style="color:#6b7280;font-size:9px;font-weight:500;white-space:nowrap;text-shadow:1px 1px 0 white,-1px 1px 0 white,1px -1px 0 white,-1px -1px 0 white;">${truncated}</div>`,
-    iconSize: [120, 14],
-    iconAnchor: [60, -4],
+    className: "partner-marker",
+    html:
+      `<div style="position:relative;width:120px;height:26px;">` +
+      `<div class="partner-dot" style="position:absolute;left:55px;top:0;width:10px;height:10px;border-radius:50%;background:${safeColor};opacity:0.85;"></div>` +
+      `<div style="position:absolute;left:0;top:13px;width:120px;text-align:center;color:#667785;font-size:9px;font-weight:500;white-space:nowrap;text-shadow:1px 1px 0 white,-1px 1px 0 white,1px -1px 0 white,-1px -1px 0 white;">${truncated}</div>` +
+      `</div>`,
+    iconSize: [120, 26],
+    iconAnchor: [60, 5],
   });
 }
 
 // Create label icon for projects (navy badge)
 function makeProjectLabelIcon(text: string) {
+  const safeText = escapeHtml(text);
   return L.divIcon({
     className: "",
-    html: `<div style="background:rgba(30,58,95,0.9);color:white;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.15);">${text}</div>`,
-    iconSize: [150, 20],
-    iconAnchor: [75, -8],
+    html: `<div class="project-label">${safeText}</div>`,
+    iconSize: [220, 24],
+    // Place the label to the right, vertically aligned with the pin head.
+    iconAnchor: [-22, 30],
+  });
+}
+
+function makeProjectIcon() {
+  return L.divIcon({
+    className: "",
+    html: '<div class="project-marker"><i class="ti ti-building-community" aria-hidden="true"></i></div>',
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+  });
+}
+
+function makeNearbyPartnerIcon(name: string, color: string) {
+  const safeName = escapeHtml(name);
+  const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : "#66717E";
+  return L.divIcon({
+    className: "",
+    html: `<div class="nearby-partner-marker" style="--nearby-marker-color:${safeColor}" role="img" aria-label="${safeName}"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
   });
 }
 
 export default function MapView({
-  partners, projects, onSelect, flyTo,
+  partners, projects, nearbyPartners, focusCoordinates, selectedProjectId, detailPanelOpen, onSelect, onSelectNearby, flyTo,
 }: {
-  partners: { type: string; features: Feature[] };
-  projects: { type: string; features: Feature[] };
-  onSelect: (props: Record<string, any>) => void;
+    partners: GeoJSON<PartnerProperties>;
+    projects: GeoJSON<ProjectProperties>;
+    nearbyPartners: NearbyPartner[];
+    focusCoordinates: [number, number][] | null;
+    selectedProjectId: number | null;
+    detailPanelOpen: boolean;
+    onSelect: (props: MapProperties) => void;
+    onSelectNearby: (partner: NearbyPartner) => void;
   flyTo: { lat: number; lng: number } | null;
 }) {
   const createClusterIcon = (cluster: { getChildCount: () => number }) => {
     const count = cluster.getChildCount();
-    let size = 38;
-    if (count > 100) size = 54;
-    else if (count > 50) size = 48;
-    else if (count > 20) size = 42;
+    let size: number;
+    let sizeClass: "cluster-small" | "cluster-medium" | "cluster-large";
 
-    let bg, text;
-    if (count <= 10)       { bg = '#e5e7eb'; text = '#6b7280'; }
-    else if (count <= 50)  { bg = '#9ca3af'; text = 'white'; }
-    else if (count <= 100) { bg = '#6b7280'; text = 'white'; }
-    else                   { bg = '#374151'; text = 'white'; }
+    if (count < 10) {
+      size = 34;
+      sizeClass = "cluster-small";
+    } else if (count < 100) {
+      size = 44;
+      sizeClass = "cluster-medium";
+    } else {
+      size = 56;
+      sizeClass = "cluster-large";
+    }
 
     return L.divIcon({
-      html: `<div style="background:${bg};color:${text};border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${count}</div>`,
-      className: "custom-cluster", iconSize: L.point(size, size),
+      html: `<div class="cluster-marker ${sizeClass}" aria-label="${count} markers">${count}</div>`,
+      className: "",
+      iconSize: L.point(size, size),
     });
   };
 
   return (
-    <MapContainer center={[13.7563, 100.5018]} zoom={11} style={{ height: "100%", width: "100%" }} scrollWheelZoom zoomControl={false}>
+    <MapContainer center={BANGKOK_METRO_CENTER} zoom={BANGKOK_METRO_ZOOM} style={{ height: "100%", width: "100%" }} scrollWheelZoom zoomControl={false}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
       <ZoomControl position="topleft" />
 
-      {/* Projects — dot + permanent label */}
-      {projects.features.map((f, i) => (
-        <ProjectMarker key={`proj-${i}`} feature={f} onSelect={onSelect} />
-      ))}
+      {/* Keep overview readable: all pins stay visible, while labels appear only
+          after zooming in or for the currently selected project. */}
+      <ProjectMarkers projects={projects} selectedProjectId={selectedProjectId} onSelect={onSelect} />
 
       {/* Partners — dot + permanent label + cluster */}
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} showCoverageOnHover={false} maxClusterRadius={50}>
-        {partners.features.map((f, i) => (
-          <PartnerMarker key={`p-${i}`} feature={f} onSelect={onSelect} />
+        {partners.features.map((feature) => (
+          <PartnerMarker key={`p-${feature.properties.id}`} feature={feature} onSelect={onSelect} />
         ))}
       </MarkerClusterGroup>
 
-      <FitBounds features={[...partners.features, ...projects.features]} />
-      {flyTo && <FlyTo lat={flyTo.lat} lng={flyTo.lng} />}
+      {/* Nearby search results use a compact, high-contrast marker layer. */}
+      {nearbyPartners.length > 0 && (
+        <MarkerClusterGroup iconCreateFunction={createClusterIcon} showCoverageOnHover={false} maxClusterRadius={38}>
+          {nearbyPartners.map((partner) => (
+            <NearbyPartnerMarker key={`nearby-${partner.id}`} partner={partner} onSelect={onSelectNearby} />
+          ))}
+        </MarkerClusterGroup>
+      )}
+
+      <FitBounds detailPanelOpen={detailPanelOpen} coordinates={focusCoordinates?.length
+        ? focusCoordinates
+        : nearbyPartners.length > 0
+          ? [
+              ...projects.features.map((feature) => feature.geometry.coordinates),
+              ...nearbyPartners.map((partner) => [partner.lng, partner.lat] as [number, number]),
+            ]
+          : [
+              ...partners.features.map((feature) => feature.geometry.coordinates),
+              ...projects.features.map((feature) => feature.geometry.coordinates),
+            ]
+      } />
+      {flyTo && <FlyTo lat={flyTo.lat} lng={flyTo.lng} detailPanelOpen={detailPanelOpen} />}
 
       <ResetButton />
     </MapContainer>
@@ -116,59 +197,96 @@ export default function MapView({
 
 function ResetButton() {
   const map = useMap();
-  const reset = useCallback(() => { map.setView([13.7563, 100.5018], 11); }, [map]);
+  const reset = useCallback(() => {
+    map.setView(BANGKOK_METRO_CENTER, BANGKOK_METRO_ZOOM);
+  }, [map]);
   return (
     <div style={{ position: "absolute", top: "10px", left: "50px", zIndex: 1000 }}>
-      <button onClick={reset} style={{
-        background: "white", border: "1px solid #ccc", borderRadius: "6px",
-        padding: "6px 10px", fontSize: "12px", cursor: "pointer",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.15)", color: "#4b5563",
-      }}>มุมมองทั้งหมด</button>
+      <button type="button" onClick={reset} className="map-reset-control" aria-label="กลับมุมมองกรุงเทพฯ และปริมณฑล">กลับมุมมองกรุงเทพฯ–ปริมณฑล</button>
     </div>
   );
 }
 
-function ProjectMarker({ feature, onSelect }: { feature: Feature; onSelect: (p: Record<string, any>) => void }) {
+function ProjectMarkers({ projects, selectedProjectId, onSelect }: {
+  projects: GeoJSON<ProjectProperties>;
+  selectedProjectId: number | null;
+  onSelect: (properties: MapProperties) => void;
+}) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+
+  useEffect(() => {
+    const updateZoom = () => setZoom(map.getZoom());
+    map.on("zoomend", updateZoom);
+    return () => { map.off("zoomend", updateZoom); };
+  }, [map]);
+
+  return projects.features.map((feature) => (
+    <ProjectMarker
+      key={`proj-${feature.properties.id}`}
+      feature={feature}
+      showLabel={(selectedProjectId !== null && String(feature.properties.id) === String(selectedProjectId)) || zoom >= 13}
+      onSelect={onSelect}
+    />
+  ));
+}
+
+function ProjectMarker({ feature, showLabel, onSelect }: { feature: GeoFeature<ProjectProperties>; showLabel: boolean; onSelect: (properties: MapProperties) => void }) {
   const lat = feature.geometry.coordinates[1];
   const lng = feature.geometry.coordinates[0];
   return (
     <>
-      <CircleMarker
-        center={[lat, lng]}
-        radius={7}
-        pathOptions={{ color: NAVY, weight: 2, fillColor: NAVY, fillOpacity: 0.85 }}
+      <Marker
+        position={[lat, lng]}
+        icon={makeProjectIcon()}
         eventHandlers={{ click: () => onSelect(feature.properties) }}
       >
-        <Tooltip sticky direction="top" offset={[0, -8]}>
-          <div><b style={{ color: NAVY }}>{feature.properties.name}</b><br /><span style={{ color: "#9ca3af", fontSize: "10px" }}>โครงการ</span></div>
+        <Tooltip sticky direction="top" offset={[0, -30]}>
+          <div><b style={{ color: PROJECT_COLOR }}>{feature.properties.name}</b><br /><span style={{ color: "#9ca3af", fontSize: "10px" }}>โครงการ</span></div>
         </Tooltip>
-      </CircleMarker>
-      <Marker position={[lat, lng]} icon={makeProjectLabelIcon(feature.properties.name)} interactive={false} />
+      </Marker>
+      {showLabel && <Marker position={[lat, lng]} icon={makeProjectLabelIcon(feature.properties.name)} interactive={false} />}
     </>
   );
 }
 
-function PartnerMarker({ feature, onSelect }: { feature: Feature; onSelect: (p: Record<string, any>) => void }) {
+function PartnerMarker({ feature, onSelect }: { feature: GeoFeature<PartnerProperties>; onSelect: (properties: MapProperties) => void }) {
   const lat = feature.geometry.coordinates[1];
   const lng = feature.geometry.coordinates[0];
-  const color = TYPE_COLORS[feature.properties.entity_type as string] || "#666";
-  const name = feature.properties.name as string;
+  const color = TYPE_COLORS[feature.properties.entity_type];
+  const name = feature.properties.name;
   return (
-    <>
-      <CircleMarker
-        center={[lat, lng]}
-        radius={5}
-        pathOptions={{ color, weight: 1, fillColor: color, fillOpacity: 0.75 }}
-        eventHandlers={{ click: () => onSelect(feature.properties) }}
-      >
-        <Tooltip sticky direction="top" offset={[0, -8]}>
-          <div><b>{name}</b><br /><span style={{ color: "#9ca3af", fontSize: "10px" }}>
-            {TYPE_LABELS[feature.properties.entity_type as string] || feature.properties.entity_type}
-            {feature.properties.admin_zone && ` · ${feature.properties.admin_zone}`}
-          </span></div>
-        </Tooltip>
-      </CircleMarker>
-      <Marker position={[lat, lng]} icon={makeLabelIcon(name)} interactive={false} />
-    </>
+    <Marker
+      position={[lat, lng]}
+      icon={makePartnerIcon(name, color)}
+      eventHandlers={{ click: () => onSelect(feature.properties) }}
+    >
+      <Tooltip direction="top" offset={[0, -8]}>
+        <div><b>{name}</b><br /><span style={{ color: "#9ca3af", fontSize: "10px" }}>
+          {TYPE_LABELS[feature.properties.entity_type as string] || feature.properties.entity_type}
+          {feature.properties.admin_zone && ` · ${feature.properties.admin_zone}`}
+        </span></div>
+      </Tooltip>
+    </Marker>
+  );
+}
+
+function NearbyPartnerMarker({ partner, onSelect }: { partner: NearbyPartner; onSelect: (partner: NearbyPartner) => void }) {
+  const color = TYPE_COLORS[partner.entity_type] || "#66717E";
+  return (
+    <Marker
+      position={[partner.lat, partner.lng]}
+      icon={makeNearbyPartnerIcon(partner.name, color)}
+      eventHandlers={{ click: () => onSelect(partner) }}
+    >
+      <Tooltip direction="top" offset={[0, -10]}>
+        <div>
+          <b>{partner.name}</b><br />
+          <span style={{ color: "#6B7280", fontSize: "10px" }}>
+            {TYPE_LABELS[partner.entity_type] || partner.entity_type} · {partner.distance_km} กม.
+          </span>
+        </div>
+      </Tooltip>
+    </Marker>
   );
 }

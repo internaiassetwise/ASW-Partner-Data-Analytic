@@ -1,12 +1,12 @@
 # Phase 3 — Geocode Summary (Gate 3)
 
-Input rows: 975 (already had coords: 36)
-To geocode: 939
-- OK        : 934
+Input rows: 974 (already had coords: 36)
+To geocode: 938
+- OK        : 933
 - Failed    : 3
 - No address: 2
 
-Success rate: 934/939 = 99.5%
+Success rate: 933/938 = 99.5%
 Network calls: 0 | cache hits used: 976
 
 Outputs:
@@ -28,12 +28,12 @@ Outputs:
 
 ## Geocode source breakdown
 
-- osm: 934
+- osm: 933
 - file: 36
 - none: 5
 
 ## Precision breakdown (of rows with coords)
 
-- precise: 837  (sub-city detail (trustworthy zone))
+- precise: 836  (sub-city detail (trustworthy zone))
 - city: 97  (city-centroid only (no zone inferred))
 - file: 36  (from source file (projects))
