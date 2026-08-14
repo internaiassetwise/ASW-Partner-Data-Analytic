@@ -4,7 +4,7 @@ Total rows: 973
 Reverse geocode (projects): 0 new, 36 cached, 0 fail
 Reverse geocode (fill gaps): 0 new, 112 cached, 0 fail
 
-Google overrides rejected outside province: 6
+Google overrides rejected outside province: 1
 Known duplicate rows merged: 1
 
 ## Zone coverage per entity_type
@@ -25,18 +25,18 @@ Known duplicate rows merged: 1
 - 49: เขตจตุจักร
 - 39: เขตหนองจอก
 - 33: เขตประเวศ
+- 33: อำเภอคลองหลวง
 - 30: เขตลาดกระบัง
 - 28: เขตวัฒนา
-- 27: อำเภอคลองหลวง
 - 26: เขตบางกะปิ
-- 24: อำเภอเมืองปทุมธานี
 - 24: เขตคลองสามวา
 - 24: เขตคลองเตย
 - 23: เขตบางขุนเทียน
-- 22: เขตลาดพร้าว
-- 21: เขตห้วยขวาง
-- 20: อำเภอเมืองสมุทรปราการ
+- 22: เขตห้วยขวาง
 - 20: เขตบางเขน
+- 20: เขตพระนคร
+- 19: เขตลาดพร้าว
+- 19: เขตธนบุรี
 
 ## Top province distribution
 
@@ -57,8 +57,7 @@ Known duplicate rows merged: 1
 
 ## Coordinate precision
 
-- precise: 848
-- city: 57
+- precise: 916
 - file: 36
-- approximate: 22
-- district: 10
+- city: 19
+- district: 2

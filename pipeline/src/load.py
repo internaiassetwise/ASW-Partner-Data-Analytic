@@ -30,7 +30,12 @@ ALLOWED_ENTITY_TYPES = {
 }
 ALLOWED_GEO_SOURCE = {"file", "osm", "manual", "google"}
 MARKETING_COLS = ["m_intranet", "m_edm", "m_line", "m_standee", "m_poster", "m_booth", "m_leaflet"]
-MERGED_DUPLICATE_EXTERNAL_IDS = ["8aeb7cd6c41075d3"]
+MERGED_DUPLICATE_EXTERNAL_IDS = [
+    "8aeb7cd6c41075d3",
+    # Obsolete HAKKO id generated before duplicated Thai combining marks in
+    # its address were normalized. The current canonical row is 55b3310b9d46234f.
+    "50fc75207120e274",
+]
 
 # Maps the "In zone Project" text used by partner_2026 (Latin script) to the
 # actual project name as written in the projects file (Thai script). 7 entries,

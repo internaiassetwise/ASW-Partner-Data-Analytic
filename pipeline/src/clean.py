@@ -78,6 +78,13 @@ SHEET_META = {
 # the source spreadsheet. Dropped during clean. Add more as discovered.
 JUNK_NAMES = {"88", "Operative"}
 
+# Canonical corrections for truncated names in the source workbook.  Apply
+# these only after external_id is generated so existing database IDs and
+# manual geocode overrides remain stable across pipeline reruns.
+NAME_CANONICAL = {
+    "บริษัท ริคโค่ กรุ๊ป (ประเทศไทย) จำก": "บริษัท ริคโค่ กรุ๊ป (ประเทศไทย) จำกัด",
+}
+
 # Canonical province/city names — every variant maps to ONE official name so
 # that filtering on the website yields a single bucket per province.
 CITY_CANONICAL = {
@@ -320,6 +327,7 @@ def clean_b2b_sheet(ws, meta, source_file):
         rec["geo_source"] = ""
         rec["raw_data"] = json.dumps(raw, ensure_ascii=False)
         rec["external_id"] = make_external_id(rec)
+        rec["name"] = NAME_CANONICAL.get(rec["name"], rec["name"])
         rows.append(rec)
     return rows
 

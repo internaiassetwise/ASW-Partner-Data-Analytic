@@ -213,6 +213,17 @@ def extract_zones(ad):
 
 def main():
     df = pd.read_csv(INPUT, dtype=str).fillna("")
+    for column in (
+        "geocode_formatted_address",
+        "geocode_location_type",
+        "geocode_partial_match",
+        "geocode_place_id",
+        "geocode_result_type",
+        "geocode_processed_at",
+        "geocode_quality_reason",
+    ):
+        if column not in df.columns:
+            df[column] = ""
     if CACHE_FILE.exists():
         cache = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
     else:
@@ -231,6 +242,8 @@ def main():
             df.at[pos, "lng"] = str(ov["lng"])
             df.at[pos, "geo_source"] = "manual"
             df.at[pos, "geo_precision"] = "precise"
+            if ov.get("address_full"):
+                df.at[pos, "address_full"] = str(ov["address_full"]).strip()
             df.at[pos, "osm_address"] = json.dumps(ov.get("address", {}), ensure_ascii=False)
             manual_applied += 1
         if manual_applied:
@@ -258,7 +271,17 @@ def main():
             df.at[pos, "lat"] = str(ov["lat"])
             df.at[pos, "lng"] = str(ov["lng"])
             df.at[pos, "geo_source"] = "google"
-            df.at[pos, "geo_precision"] = "precise"
+            # Legacy overrides did not retain Google's quality metadata and
+            # keep their historic classification. New targeted runs explicitly
+            # preserve ROOFTOP vs RANGE_INTERPOLATED.
+            df.at[pos, "geo_precision"] = ov.get("geo_precision") or "precise"
+            df.at[pos, "geocode_formatted_address"] = ov.get("formatted_address", "")
+            df.at[pos, "geocode_location_type"] = ov.get("location_type", "")
+            df.at[pos, "geocode_partial_match"] = str(ov.get("partial_match", ""))
+            df.at[pos, "geocode_place_id"] = ov.get("place_id", "")
+            df.at[pos, "geocode_result_type"] = ov.get("result_type", "")
+            df.at[pos, "geocode_processed_at"] = ov.get("processed_at", "")
+            df.at[pos, "geocode_quality_reason"] = ov.get("quality_reason", "")
             # keep osm_address so zone extraction uses the OSM-derived เขต
             # (Google coords are in the same เขต for most rows; only the 97
             # city-level rows have empty osm_address and get reverse-geocoded
@@ -419,14 +442,29 @@ def main():
 
     # Mark fallback/centroid coordinates so distance search can exclude them.
     partner_mask = df["entity_type"] != "project"
+    osm_coordinate_mask = (
+        partner_mask
+        & (df["geo_source"] == "osm")
+        & (df["lat"] != "")
+        & (df["lng"] != "")
+    )
     coordinate_counts = (
-        df[partner_mask & (df["lat"] != "") & (df["lng"] != "")]
+        df[osm_coordinate_mask]
         .groupby(["lat", "lng"])["external_id"].transform("count")
     )
     df.loc[coordinate_counts.index[coordinate_counts >= 5], "geo_precision"] = "approximate"
     for pos, row in df[partner_mask].iterrows():
-        if row["geo_source"] in {"manual", "google"}:
+        if row["geo_source"] == "manual":
             df.at[pos, "geo_precision"] = "precise"
+            continue
+        if row["geo_source"] == "google":
+            # Keep the quality tier assigned by new Google response metadata.
+            # Legacy overrides did not retain that metadata, so preserve their
+            # historic classification until they are deliberately rechecked.
+            if row.get("geocode_location_type"):
+                df.at[pos, "geo_precision"] = row.get("geo_precision") or "approximate"
+            else:
+                df.at[pos, "geo_precision"] = "precise"
             continue
         query = str(row.get("osm_query_used", "")).strip()
         province_value = re.escape(str(row.get("province", "")).strip())

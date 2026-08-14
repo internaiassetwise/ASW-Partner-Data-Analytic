@@ -7,7 +7,7 @@ To geocode: 938
 - No address: 2
 
 Success rate: 933/938 = 99.5%
-Network calls: 0 | cache hits used: 976
+Network calls: 1 | cache hits used: 976
 
 Outputs:
 - D:\ASW_Partner\pipeline\data\enriched\partners_geocoded.csv

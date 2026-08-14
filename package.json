@@ -1,0 +1,21 @@
+{
+  "name": "asw-partner-map",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend -c blue,cyan \"npm run dev --workspace @asw/backend\" \"npm run dev --workspace @asw/frontend\"",
+    "dev:frontend": "npm run dev --workspace @asw/frontend",
+    "dev:backend": "npm run dev --workspace @asw/backend",
+    "build": "npm run typecheck --workspace @asw/shared && npm run build --workspace @asw/backend && npm run build --workspace @asw/frontend",
+    "lint": "npm run typecheck --workspace @asw/shared && npm run lint --workspace @asw/backend && npm run lint --workspace @asw/frontend",
+    "start:frontend": "npm run start --workspace @asw/frontend",
+    "start:backend": "npm run start --workspace @asw/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

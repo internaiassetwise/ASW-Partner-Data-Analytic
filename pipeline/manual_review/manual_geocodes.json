@@ -51,6 +51,7 @@
   },
   "35a4a3d962b7fa69": {
     "name": "บริษัท ซีดีไซน์",
+    "address_full": "4 ซอยกรุงเทพกรีฑา 37 แยก 4 แขวงทับช้าง เขตสะพานสูง กรุงเทพมหานคร",
     "query": "4 ซอยกรุงเทพกรีฑา 37 แยก 4 แขวงทับช้าง เขตสะพานสูง กรุงเทพมหานคร, ประเทศไทย",
     "lat": 13.7445647,
     "lng": 100.6850368,
@@ -68,6 +69,7 @@
   },
   "f057a010e0d13d04": {
     "name": "บริษัท ดูโฮม จำกัด (มหาชน)",
+    "address_full": "88/111 หมู่ที่ 3 ตำบลบางพูน อำเภอเมืองปทุมธานี จังหวัดปทุมธานี 12000",
     "query": "ตำบลบางพูน อำเภอเมืองปทุมธานี, ประเทศไทย",
     "lat": 13.9887481,
     "lng": 100.5849682,
@@ -117,5 +119,459 @@
       "country_code": "th"
     },
     "source": "user_verified"
+  },
+  "4aff2348e24d0a2d": {
+    "name": "บริษัท ไอแอม คอนซัลติ้ง จำกัด",
+    "address_full": "219 ถนนประชาอุทิศ แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพมหานคร 10310",
+    "query": "219 ถนนประชาอุทิศ แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพมหานคร 10310",
+    "lat": 13.775013,
+    "lng": 100.5792503,
+    "address": {
+      "house_number": "219",
+      "road": "ถนนประชาอุทิศ",
+      "quarter": "แขวงห้วยขวาง",
+      "suburb": "เขตห้วยขวาง",
+      "city": "กรุงเทพมหานคร",
+      "postcode": "10310",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.775013,100.5792503",
+    "address_source_url": "https://www.etda.or.th/getattachment/68ba5d4a-432b-482b-b591-f9d53e6185db/ETDA-63-010.aspx"
+  },
+  "2c90e13240af1995": {
+    "name": "บริษัท เนเจอคอนเนอส์ จำกัด",
+    "address_full": "321 ถนนประดิษฐ์มนูธรรม แขวงวังทองหลาง เขตวังทองหลาง กรุงเทพมหานคร 10310",
+    "query": "321 ถนนประดิษฐ์มนูธรรม แขวงวังทองหลาง เขตวังทองหลาง กรุงเทพมหานคร 10310",
+    "lat": 13.7684713,
+    "lng": 100.6026258,
+    "address": {
+      "house_number": "321",
+      "road": "ถนนประดิษฐ์มนูธรรม",
+      "quarter": "แขวงวังทองหลาง",
+      "suburb": "เขตวังทองหลาง",
+      "city": "กรุงเทพมหานคร",
+      "postcode": "10310",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.7684713,100.6026258",
+    "address_source_url": "https://naturecorners.co.th/th/projects/"
+  },
+  "b25bbd438215967a": {
+    "name": "บริษัท ดี.พี.เซรามิคส์ จำกัด",
+    "address_full": "311 ถนนบรมราชชนนี แขวงฉิมพลี เขตตลิ่งชัน กรุงเทพมหานคร 10170",
+    "query": "311 ถนนบรมราชชนนี แขวงฉิมพลี เขตตลิ่งชัน กรุงเทพมหานคร 10170",
+    "lat": 13.7821701,
+    "lng": 100.4206235,
+    "address": {
+      "house_number": "311",
+      "road": "ถนนบรมราชชนนี",
+      "quarter": "แขวงฉิมพลี",
+      "suburb": "เขตตลิ่งชัน",
+      "city": "กรุงเทพมหานคร",
+      "postcode": "10170",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.7821701,100.4206235",
+    "address_source_url": "https://www.dataforthai.com/company/0105538083054/"
+  },
+  "20394980022c2986": {
+    "name": "บริษัท คริสตัล ทราเวล สไตลิสต์ จำกัด",
+    "address_full": "197 ถนนประดิษฐ์มนูธรรม แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพมหานคร 10230",
+    "query": "197 ถนนประดิษฐ์มนูธรรม แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพมหานคร 10230",
+    "lat": 13.811136,
+    "lng": 100.6184402,
+    "address": {
+      "house_number": "197",
+      "road": "ถนนประดิษฐ์มนูธรรม",
+      "quarter": "แขวงลาดพร้าว",
+      "suburb": "เขตลาดพร้าว",
+      "city": "กรุงเทพมหานคร",
+      "postcode": "10230",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.811136,100.6184402",
+    "address_source_url": "https://www.dataforthai.com/company/0125565021013/"
+  },
+  "0686b1a4b1a2c653": {
+    "name": "บริษัท เอ็ม เอ็ม ชี มัช มอร์ จำกัด",
+    "address_full": "อาคารเอสเจ อินฟินิท วัน บิสซิเนส คอมเพล็กซ์ เลขที่ 349 ชั้น 20 ห้องเลขที่ 2004/16 ยูนิต 2001-2005 ถนนวิภาวดีรังสิต แขวงจอมพล เขตจตุจักร กรุงเทพมหานคร 10900",
+    "query": "SJ Infinite I Business Complex 349 ถนนวิภาวดีรังสิต แขวงจอมพล เขตจตุจักร กรุงเทพมหานคร 10900",
+    "lat": 13.8095484,
+    "lng": 100.5588185,
+    "address": {
+      "office": "SJ Infinite I Business Complex",
+      "house_number": "349",
+      "road": "ถนนวิภาวดีรังสิต",
+      "quarter": "แขวงจอมพล",
+      "suburb": "เขตจตุจักร",
+      "city": "กรุงเทพมหานคร",
+      "postcode": "10900",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.8095484,100.5588185",
+    "address_source_url": "https://www.wha-group.com/en/wha-group-business/wha-office-solutions/sj-infinite-i"
+  },
+  "ec77b3951969353c": {
+    "name": "บริษัท ริคโค่ กรุ๊ป (ประเทศไทย) จำกัด",
+    "address_full": "15/66 หมู่ที่ 18 ตำบลคูคต อำเภอลำลูกกา จังหวัดปทุมธานี 12130",
+    "query": "RICCO GROUP CO., LTD. 15/66 ตำบลคูคต อำเภอลำลูกกา ปทุมธานี 12130",
+    "lat": 13.9398932,
+    "lng": 100.6433073,
+    "address": {
+      "house_number": "15/66",
+      "city_district": "ตำบลคูคต",
+      "county": "อำเภอลำลูกกา",
+      "province": "จังหวัดปทุมธานี",
+      "postcode": "12130",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.9398932,100.6433073"
+  },
+  "39cc3ab0daaba73a": {
+    "name": "บริษัท อิทธิฤทธิ์ พลัส จำกัด",
+    "address_full": "โครงการ The Connect บิทซ์ทาวน์ เลขที่ 1/26 ซอยรังสิต-นครนายก 63/1 ตำบลประชาธิปัตย์ อำเภอธัญบุรี จังหวัดปทุมธานี 12130",
+    "query": "บริษัท อิทธิฤทธิ์ พลัส จำกัด 1/26 ซอยรังสิต-นครนายก 63/1 ปทุมธานี",
+    "lat": 13.9960501,
+    "lng": 100.6568828,
+    "address": {
+      "house_number": "1/26",
+      "road": "ซอยรังสิต-นครนายก 63/1",
+      "city_district": "ตำบลประชาธิปัตย์",
+      "county": "อำเภอธัญบุรี",
+      "province": "จังหวัดปทุมธานี",
+      "postcode": "12130",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.9960501,100.6568828"
+  },
+  "233ff5b6bbd13be6": {
+    "name": "บริษัท เซ็นทรัลไลซ์ เพาเวอร์ อุตสาหกรรม จำกัด",
+    "address_full": "9/106 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "บริษัท เซ็นทรัลไลซ์ เพาเวอร์ อุตสาหกรรม จำกัด 9/106 หมู่ 5 ถนนพหลโยธิน ปทุมธานี",
+    "lat": 14.0364171,
+    "lng": 100.6087636,
+    "address": {
+      "house_number": "9/106",
+      "road": "ถนนพหลโยธิน",
+      "city_district": "ตำบลคลองหนึ่ง",
+      "county": "อำเภอคลองหลวง",
+      "province": "จังหวัดปทุมธานี",
+      "postcode": "12120",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0364171,100.6087636"
+  },
+  "4e89a7d344a8f33f": {
+    "name": "บริษัท อัมเมก้า (ประเทศไทย) จำกัด",
+    "address_full": "9/54 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "บริษัท อัมเมก้า (ประเทศไทย) จำกัด 9/54 หมู่ 5 ถนนพหลโยธิน ปทุมธานี",
+    "lat": 14.0373005,
+    "lng": 100.6104887,
+    "address": {
+      "house_number": "9/54",
+      "road": "ถนนพหลโยธิน",
+      "city_district": "ตำบลคลองหนึ่ง",
+      "county": "อำเภอคลองหลวง",
+      "province": "จังหวัดปทุมธานี",
+      "postcode": "12120",
+      "country": "ประเทศไทย",
+      "country_code": "th"
+    },
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0373005,100.6104887"
+  },
+  "533977de08dd73d2": {
+    "name": "บริษัท ลิกซิล (ประเทศไทย) จำกัด (มหาชน)",
+    "address_full": "1/6 หมู่ที่ 1 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "LIXIL Thailand 1/6 หมู่ 1 ถนนพหลโยธิน คลองหนึ่ง คลองหลวง ปทุมธานี 12120",
+    "lat": 13.997302,
+    "lng": 100.608307,
+    "address": {"house_number": "1/6", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.997302,100.608307",
+    "address_source_url": "https://www.lixil.co.th/wp-content/uploads/sites/7/2025/12/A3_Data-Subject-Right-Request-FormENTH_LX28012022.pdf"
+  },
+  "4cc9b5b25ea0a01e": {
+    "name": "บริษัท บลู อควา โซลูชั่น จำกัด",
+    "address_full": "9/155 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "บริษัท บลู อควา โซลูชั่น จำกัด 9/155 หมู่ 5 คลองหนึ่ง คลองหลวง ปทุมธานี",
+    "lat": 14.0365667,
+    "lng": 100.6059738,
+    "address": {"house_number": "9/155", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0365667,100.6059738"
+  },
+  "5078676e37044566": {
+    "name": "รังสิต พรอสเพอร์ เอสเตท",
+    "address_full": "9/6 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "Rangsit Prosper Estate 9/6 หมู่ 5 คลองหนึ่ง คลองหลวง ปทุมธานี",
+    "lat": 14.0373958,
+    "lng": 100.6148102,
+    "address": {"house_number": "9/6", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0373958,100.6148102",
+    "address_source_url": "https://rpe.co.th/th/factory/"
+  },
+  "f37275b24578f691": {
+    "name": "บริษัท โอนิชิ อิเล็กทรอนิกส์ (ไทยแลนด์) จำกัด",
+    "address_full": "9/34 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "Ohnishi Electronics Thailand 9/34 Moo 5 Khlong Nueng Pathum Thani",
+    "lat": 14.0373308,
+    "lng": 100.6064472,
+    "address": {"house_number": "9/34", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0373308,100.6064472"
+  },
+  "ffb8771156fab4be": {
+    "name": "บริษัท สตรีม ไอ.ที.คอนซัลติ้ง จำกัด - stream consulting",
+    "address_full": "195 อาคารวัน แบงค็อก ทาวเวอร์ 4 ชั้น 21 ถนนวิทยุ แขวงลุมพินี เขตปทุมวัน กรุงเทพมหานคร 10330",
+    "query": "Stream IT Consulting One Bangkok Tower 4 195 Wireless Road Bangkok",
+    "lat": 13.7268669,
+    "lng": 100.5463683,
+    "address": {"house_number": "195", "road": "ถนนวิทยุ", "city_district": "แขวงลุมพินี", "county": "เขตปทุมวัน", "province": "กรุงเทพมหานคร", "postcode": "10330", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.7268669,100.5463683"
+  },
+  "77188d23ba77ca95": {
+    "name": "บริษัท นารุกาว่า ฟู้ดส์ (ไทยแลนด์) จำกัด NARUKAWA FOODS (THAILAND) CO., LTD.",
+    "address_full": "9/16 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "Narukawa Foods Thailand 9/16 Moo 5 Khlong Nueng Pathum Thani",
+    "lat": 14.0375195,
+    "lng": 100.6113684,
+    "address": {"house_number": "9/16", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0375195,100.6113684"
+  },
+  "d7eeae083d253cd2": {
+    "name": "บริษัท อาร์เค (ประเทศไทย) จำกัด",
+    "address_full": "9/23 และ 9/133 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "RK Thailand 9/23 9/133 Khlong Nueng Khlong Luang Pathum Thani",
+    "lat": 14.0374781,
+    "lng": 100.6088211,
+    "address": {"house_number": "9/23, 9/133", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0374781,100.6088211"
+  },
+  "55b3310b9d46234f": {
+    "name": "บริษัท ฮากโก้ (ไทยแลนด์) จำกัด",
+    "address_full": "9/41 หมู่ที่ 5 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "HAKKO Thailand 9/41 Moo 5 Khlong Nueng Pathum Thani",
+    "lat": 14.0372679,
+    "lng": 100.6072892,
+    "address": {"house_number": "9/41", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0372679,100.6072892"
+  },
+  "18c2f6aa9e9d352a": {
+    "name": "FABRINET CO.,LTD บริษัท ฟาบริเนท จำกัด",
+    "address_full": "5/6 หมู่ที่ 6 ถนนพหลโยธิน ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
+    "query": "Fabrinet 5/6 Moo 6 Phaholyothin Khlong Nueng Pathum Thani",
+    "lat": 14.049872,
+    "lng": 100.607557,
+    "address": {"house_number": "5/6", "road": "ถนนพหลโยธิน", "city_district": "ตำบลคลองหนึ่ง", "county": "อำเภอคลองหลวง", "province": "จังหวัดปทุมธานี", "postcode": "12120", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.049872,100.607557",
+    "address_source_url": "https://fabrinet.com/about/locations"
+  },
+  "1b1e7c4fce3f2eab": {
+    "name": "บริษัท ซินเนอร์เจติค ออโต้ เพอร์ฟอร์มานซ์ จำกัด (มหาชน) - Asap Car Rental",
+    "address_full": "149 หมู่ที่ 3 ถนนเทพารักษ์ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ 10270",
+    "query": "ASAP Car Rental 149 Moo 3 Thepharak Samut Prakan",
+    "lat": 13.6341433,
+    "lng": 100.6135895,
+    "address": {"house_number": "149", "road": "ถนนเทพารักษ์", "city_district": "ตำบลเทพารักษ์", "county": "อำเภอเมืองสมุทรปราการ", "province": "จังหวัดสมุทรปราการ", "postcode": "10270", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.6341433,100.6135895"
+  },
+  "394c5e6ba1616048": {
+    "name": "บริษัท มี มายด์ จำกัด",
+    "address_full": "117/7 หมู่ที่ 1 ตำบลบางปลา อำเภอบางเสาธง จังหวัดสมุทรปราการ",
+    "query": "บริษัท มี มายด์ จำกัด 117/7 หมู่ 1 บางปลา บางเสาธง สมุทรปราการ",
+    "lat": 13.5822326,
+    "lng": 100.7685627,
+    "address": {"house_number": "117/7", "city_district": "ตำบลบางปลา", "county": "อำเภอบางเสาธง", "province": "จังหวัดสมุทรปราการ", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.5822326,100.7685627"
+  },
+  "fbd464bee5822024": {
+    "name": "บริษัท โอนเนอร์ เมท กรุ๊ป จำกัด",
+    "address_full": "199/247 หมู่ที่ 5 ตำบลบางพลีใหญ่ อำเภอบางพลี จังหวัดสมุทรปราการ",
+    "query": "Owner Mate Group 199/247 Moo 5 Bang Phli Yai Samut Prakan",
+    "lat": 13.6011854,
+    "lng": 100.694016,
+    "address": {"house_number": "199/247", "city_district": "ตำบลบางพลีใหญ่", "county": "อำเภอบางพลี", "province": "จังหวัดสมุทรปราการ", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.6011854,100.694016"
+  },
+  "942ba3d9af7deac1": {
+    "name": "บริษัท ทีโอเอ",
+    "address_full": "31/2 หมู่ที่ 3 ถนนบางนา-ตราด ตำบลบางเสาธง อำเภอบางเสาธง จังหวัดสมุทรปราการ 10570",
+    "query": "TOA Paint Thailand 31/2 Moo 3 Bangna-Trad Bang Sao Thong Samut Prakan",
+    "lat": 13.5967335,
+    "lng": 100.8020632,
+    "address": {"house_number": "31/2", "road": "ถนนบางนา-ตราด", "city_district": "ตำบลบางเสาธง", "county": "อำเภอบางเสาธง", "province": "จังหวัดสมุทรปราการ", "postcode": "10570", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.5967335,100.8020632",
+    "address_source_url": "https://investor.toagroup.com/th/shareholder-information/general-information"
+  },
+  "63ab757160775891": {
+    "name": "บริษัท ฮีโน่มอเตอร์ส แมนูแฟคเจอริ่ง (ประเทศไทย) - HINO",
+    "address_full": "99 หมู่ที่ 3 ถนนเทพารักษ์ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ 10270",
+    "query": "Hino Motors Manufacturing Thailand 99 Moo 3 Thepharak Samut Prakan",
+    "lat": 13.63758,
+    "lng": 100.6078679,
+    "address": {"house_number": "99", "road": "ถนนเทพารักษ์", "city_district": "ตำบลเทพารักษ์", "county": "อำเภอเมืองสมุทรปราการ", "province": "จังหวัดสมุทรปราการ", "postcode": "10270", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.63758,100.6078679"
+  },
+  "1b34b553c7873553": {
+    "name": "รร อัสสัมชัญ สมุทรปราการ - Assumption College Samutprakarn",
+    "address_full": "419/1389 หมู่ที่ 5 ถนนเทพารักษ์ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ 10270",
+    "query": "Assumption College Samutprakarn 419/1389 Thepharak Samut Prakan",
+    "lat": 13.6283544,
+    "lng": 100.6032925,
+    "address": {"house_number": "419/1389", "road": "ถนนเทพารักษ์", "city_district": "ตำบลเทพารักษ์", "county": "อำเภอเมืองสมุทรปราการ", "province": "จังหวัดสมุทรปราการ", "postcode": "10270", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.6283544,100.6032925"
+  },
+  "8af20d5a86f613a3": {
+    "name": "บริษัท เวล เกรด เอ็นจิเนียริ่ง",
+    "address_full": "50/1203 หมู่ที่ 9 ตำบลบางพูด อำเภอปากเกร็ด จังหวัดนนทบุรี",
+    "query": "Well Grade Engineering 50/1203 Moo 9 Bang Phut Pak Kret Nonthaburi",
+    "lat": 13.9087875,
+    "lng": 100.5415664,
+    "address": {"house_number": "50/1203", "city_district": "ตำบลบางพูด", "county": "อำเภอปากเกร็ด", "province": "จังหวัดนนทบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.9087875,100.5415664"
+  },
+  "511c7ec561172148": {
+    "name": "บริษัท สิริ ณดา (2563) จำกัด",
+    "address_full": "53/136 หมู่ที่ 3 ตำบลบางพูด อำเภอปากเกร็ด จังหวัดนนทบุรี",
+    "query": "บริษัท สิริ ณดา 53/136 หมู่ 3 ปากเกร็ด นนทบุรี",
+    "lat": 13.9332517,
+    "lng": 100.5418888,
+    "address": {"house_number": "53/136", "city_district": "ตำบลบางพูด", "county": "อำเภอปากเกร็ด", "province": "จังหวัดนนทบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.9332517,100.5418888"
+  },
+  "4b2c6789a6806da2": {
+    "name": "บริษัท เพาเวอร์ เบรน ไซน์ จำกัด",
+    "address_full": "23/199 หมู่ที่ 9 ตำบลบางพูด อำเภอปากเกร็ด จังหวัดนนทบุรี",
+    "query": "Power Brain Sign 23/199 Moo 9 Bang Phut Pak Kret Nonthaburi",
+    "lat": 13.9151912,
+    "lng": 100.5293584,
+    "address": {"house_number": "23/199", "city_district": "ตำบลบางพูด", "county": "อำเภอปากเกร็ด", "province": "จังหวัดนนทบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.9151912,100.5293584"
+  },
+  "2545d111f0517792": {
+    "name": "บริษัท สตูดิโอ เอ็นดีที จำกัด",
+    "address_full": "99/94 หมู่ที่ 3 ตำบลบางตลาด อำเภอปากเกร็ด จังหวัดนนทบุรี",
+    "query": "Studio NDT 99/94 Moo 3 Bang Talat Pak Kret Nonthaburi",
+    "lat": 13.8885005,
+    "lng": 100.5260828,
+    "address": {"house_number": "99/94", "city_district": "ตำบลบางตลาด", "county": "อำเภอปากเกร็ด", "province": "จังหวัดนนทบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.8885005,100.5260828",
+    "address_source_url": "https://www.dataforthai.com/company/0125564000934/"
+  },
+  "93582bff6905aaff": {
+    "name": "บริษัท ฟายด์ เวอร์ค กรุ๊ป จำกัด",
+    "address_full": "59/1 หมู่ที่ 10 ตำบลบางแม่นาง อำเภอบางใหญ่ จังหวัดนนทบุรี",
+    "query": "Find Work Group 59/1 Moo 10 Bang Mae Nang Bang Yai Nonthaburi",
+    "lat": 13.9000655,
+    "lng": 100.3736272,
+    "address": {"house_number": "59/1", "city_district": "ตำบลบางแม่นาง", "county": "อำเภอบางใหญ่", "province": "จังหวัดนนทบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.9000655,100.3736272"
+  },
+  "efc1abc849ebc2af": {
+    "name": "บริษัท เคไอเอ็ม แอสโซซิเอทส์ จำกัด",
+    "address_full": "48/98-99 หมู่ที่ 4 ตำบลบางกร่าง อำเภอเมืองนนทบุรี จังหวัดนนทบุรี",
+    "query": "KIM Associates 48/98-99 Moo 4 Bang Krang Nonthaburi",
+    "lat": 13.8423596,
+    "lng": 100.4538904,
+    "address": {"house_number": "48/98-99", "city_district": "ตำบลบางกร่าง", "county": "อำเภอเมืองนนทบุรี", "province": "จังหวัดนนทบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.8423596,100.4538904",
+    "address_source_url": "https://www.dataforthai.com/company/0105551017116/"
+  },
+  "62fa7560510282f2": {
+    "name": "โรงพยาบาลกรุงเทพระยอง (Bangkok Rayong Hospital)",
+    "address_full": "8 หมู่ที่ 2 ตำบลเนินพระ อำเภอเมืองระยอง จังหวัดระยอง 21000",
+    "query": "Bangkok Hospital Rayong 8 Moo 2 Noen Phra Rayong",
+    "lat": 12.6746347,
+    "lng": 101.2214653,
+    "address": {"house_number": "8", "city_district": "ตำบลเนินพระ", "county": "อำเภอเมืองระยอง", "province": "จังหวัดระยอง", "postcode": "21000", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=12.6746347,101.2214653"
+  },
+  "8f13f2f4ba1b32f5": {
+    "name": "บริษัท ซี.อี.เอ็ม เทคโนโลยี (ไทยแลนด์) จํากัด",
+    "address_full": "31/8 หมู่ที่ 13 ตำบลไร่ขิง อำเภอสามพราน จังหวัดนครปฐม",
+    "query": "CEM Technology Thailand 31/8 Moo 13 Rai Khing Sam Phran Nakhon Pathom",
+    "lat": 13.74136,
+    "lng": 100.2917526,
+    "address": {"house_number": "31/8", "city_district": "ตำบลไร่ขิง", "county": "อำเภอสามพราน", "province": "จังหวัดนครปฐม", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.74136,100.2917526",
+    "address_source_url": "https://www.cem.co.th/"
+  },
+  "3759a359bdd26478": {
+    "name": "บริษัท เอส.เอส.เอ็ม.ซัพพลาย จำกัด",
+    "address_full": "36/3 หมู่ที่ 10 ตำบลหนองรี อำเภอเมืองชลบุรี จังหวัดชลบุรี",
+    "query": "SSM Supply 36/3 Moo 10 Nong Ree Chonburi",
+    "lat": 13.3235901,
+    "lng": 101.0483903,
+    "address": {"house_number": "36/3", "city_district": "ตำบลหนองรี", "county": "อำเภอเมืองชลบุรี", "province": "จังหวัดชลบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.3235901,101.0483903"
+  },
+  "73c9ac23cd106925": {
+    "name": "บริษัท เค วาย บี เอเชียน แปซิฟิค คอร์ปอเรชั่น จำกัด",
+    "address_full": "700/363 หมู่ที่ 6 นิคมอุตสาหกรรมอมตะนคร 2 ถนนบางนา-ตราด กม.57 ตำบลดอนหัวฬ่อ อำเภอเมืองชลบุรี จังหวัดชลบุรี 20000",
+    "query": "KYB Thailand 700/363 Moo 6 Amata Nakorn 2 Don Hua Lo Chonburi",
+    "lat": 13.4262253,
+    "lng": 101.0318885,
+    "address": {"house_number": "700/363", "road": "ถนนบางนา-ตราด", "city_district": "ตำบลดอนหัวฬ่อ", "county": "อำเภอเมืองชลบุรี", "province": "จังหวัดชลบุรี", "postcode": "20000", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.4262253,101.0318885",
+    "address_source_url": "https://www.kyb.co.jp/company/global/asia.html"
+  },
+  "f8e2e56f393f3cb1": {
+    "name": "อิทธิฤทธิ์ ไนซ์ คอร์ปอเรชั่น จำกัด (มหาชน)",
+    "address_full": "89/18-19 หมู่ที่ 5 ตำบลพันท้ายนรสิงห์ อำเภอเมืองสมุทรสาคร จังหวัดสมุทรสาคร",
+    "query": "Ittirit Nice Corporation 89/18-19 Moo 5 Phanthai Norasing Samut Sakhon",
+    "lat": 13.5835531,
+    "lng": 100.3658008,
+    "address": {"house_number": "89/18-19", "city_district": "ตำบลพันท้ายนรสิงห์", "county": "อำเภอเมืองสมุทรสาคร", "province": "จังหวัดสมุทรสาคร", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=13.5835531,100.3658008"
+  },
+  "f293f9d4bfa67b9b": {
+    "name": "บริษัท สยามแกรนด์ อลูมิเนียม จำกัด",
+    "address_full": "168/11-12 หมู่ที่ 3 ตำบลปากแพรก อำเภอเมืองกาญจนบุรี จังหวัดกาญจนบุรี",
+    "query": "Siam Grand Aluminum 168/11-12 Moo 3 Pak Phraek Kanchanaburi",
+    "lat": 14.0106579,
+    "lng": 99.5576882,
+    "address": {"house_number": "168/11-12", "city_district": "ตำบลปากแพรก", "county": "อำเภอเมืองกาญจนบุรี", "province": "จังหวัดกาญจนบุรี", "country": "ประเทศไทย", "country_code": "th"},
+    "source": "google_maps_verified",
+    "source_url": "https://www.google.com/maps?q=14.0106579,99.5576882"
   }
 }
